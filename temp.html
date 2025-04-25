@@ -1,0 +1,1127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+  <!-- 添加进度条更新函数，确保早于DOM元素解析 -->
+  <script>
+  // 全局进度条更新函数
+  function updateProgressBar() {
+    var progressValue = document.getElementById('progress')?.value || 0;
+    var progressBar = document.getElementById('progressBar');
+    
+    if (!progressBar) return; // 防止在元素加载前调用
+    
+    // 确保值在0-100之间
+    progressValue = Math.max(0, Math.min(100, progressValue));
+    
+    // 更新进度条
+    progressBar.style.width = progressValue + '%';
+    progressBar.setAttribute('aria-valuenow', progressValue);
+    
+    // 更新颜色
+    progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated rounded-pill';
+    if (progressValue < 25) {
+      progressBar.classList.add('bg-danger');
+    } else if (progressValue < 50) {
+      progressBar.classList.add('bg-warning');
+    } else if (progressValue < 75) {
+      progressBar.classList.add('bg-info');
+    } else {
+      progressBar.classList.add('bg-success');
+    }
+    
+    console.log('进度条已更新:', progressValue + '%');
+  }
+  
+  // 显示警报信息函数
+  function showAlert(type, message) {
+    var alertBox = $('#alertBox');
+    
+    // 设置警报类型和消息
+    alertBox.removeClass('alert-success alert-danger alert-warning alert-info')
+            .addClass('alert-' + type);
+    $('#alertMessage').html(message);
+    
+    // 显示警报
+    alertBox.removeClass('d-none').fadeIn();
+    
+    // 5秒后自动隐藏
+    setTimeout(function() {
+      alertBox.fadeOut('slow', function() {
+        alertBox.addClass('d-none');
+      });
+    }, 5000);
+  }
+  
+  // 更新select元素颜色
+  function updateSelectColor(element) {
+    var selectedOption = $(element).find('option:selected');
+    var color = selectedOption.data('color');
+    
+    if (color) {
+      // 移除所有可能的颜色类
+      $(element).removeClass('text-primary text-success text-danger text-warning text-info');
+      
+      // 添加选定的颜色类
+      $(element).addClass('text-' + color);
+    }
+  }
+  
+  // 加载记录详情函数 - 移至页面顶部以确保始终可用
+  function loadRecordDetails(recordId) {
+    console.log('loadRecordDetails called with ID:', recordId);
+    if (!recordId) return;
+    
+    // 显示加载中状态
+    $('#submitBtn').prop('disabled', true);
+    $('#submitSpinner').removeClass('d-none');
+    $('#submitText').text('加载中...');
+    
+    // 发送AJAX请求获取记录详情
+    $.ajax({
+      url: "{% url 'experiment:get_device_run' record_id='_RECORD_ID_' %}".replace('_RECORD_ID_', recordId),
+      type: "GET",
+      dataType: "json",
+      success: function(response) {
+        if (response.status === 'success') {
+          fillFormWithRecordData(response.data);
+        } else {
+          showAlert('danger', response.message);
+        }
+        // 恢复按钮状态
+        $('#submitBtn').prop('disabled', false);
+        $('#submitSpinner').addClass('d-none');
+        $('#submitText').html('<i class="bi bi-check-circle me-1"></i>提交登记');
+      },
+      error: function(xhr, status, error) {
+        showAlert('danger', '加载记录详情失败，请重试');
+        console.error("加载记录详情失败:", error);
+        
+        // 恢复按钮状态
+        $('#submitBtn').prop('disabled', false);
+        $('#submitSpinner').addClass('d-none');
+        $('#submitText').html('<i class="bi bi-check-circle me-1"></i>提交登记');
+      }
+    });
+  }
+  
+  // 用记录数据填充表单
+  function fillFormWithRecordData(data) {
+    // 设置记录ID
+    $('#recordId').val(data.id);
+    
+    // 只填充指定的表单字段
+    $('#taskNumber').val(data.task_number);
+    $('#taskStatus').val(data.task_status);
+    $('#sampleModel').val(data.transmission_model);
+    $('#testContent').val(data.test_content);
+    $('#sampleNumber').val(data.sample_number);
+    $('#benchStatus').val(data.bench_status);
+    
+    // DVP计划选项
+    if (data.dvp_plan === '是') {
+      $('#dvpPlanYes').prop('checked', true);
+    } else {
+      $('#dvpPlanNo').prop('checked', true);
+    }
+    
+    // 更新Select颜色
+    updateSelectColor($('#taskStatus'));
+    updateSelectColor($('#benchStatus'));
+    
+    // 滚动到表单顶部
+    $('html, body').animate({ scrollTop: $('#deviceRunForm').offset().top - 100 }, 'slow');
+    
+    // 显示成功提示
+    showAlert('info', '成功加载记录 #' + data.id);
+  }
+  
+  // 验证时间输入
+  function validateTimeInput(input) {
+    var value = parseFloat(input.value) || 0;
+    if (value > 24) {
+      input.value = 24;
+      alert(input.getAttribute('data-name') + '不能超过24小时');
+    }
+    validateTotalTime();
+  }
+
+  // 验证总时间
+  function validateTotalTime() {
+    var debugging = parseFloat($('#debugging').val() || 0);
+    var running = parseFloat($('#running').val() || 0);
+    var sampleFault = parseFloat($('#sampleFault').val() || 0);
+    var benchFault = parseFloat($('#benchFault').val() || 0);
+    
+    var totalTime = debugging + running + sampleFault + benchFault;
+    if (totalTime > 24) {
+      alert('四个时长（调试、运行、样件故障、台架故障）的总和不能超过24小时');
+      // 重置所有时间输入为0
+      $('#debugging, #running, #sampleFault, #benchFault').val(0);
+      return false;
+    }
+    return true;
+  }
+
+  // 初始化日期选择器为当前日期（在页面加载前准备好日期值）
+  var today = new Date();
+  var dd = String(today.getDate()).padStart(2, '0');
+  var mm = String(today.getMonth() + 1).padStart(2, '0');
+  var yyyy = today.getFullYear();
+  today = yyyy + '-' + mm + '-' + dd;
+  
+  // 确保页面加载完成后初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    // 设置日期控件的值为当前日期
+    document.getElementById('date').value = today;
+    
+    // 立即更新一次进度条
+    setTimeout(updateProgressBar, 100);
+    
+    // 绑定事件监听
+    var progressInput = document.getElementById('progress');
+    if (progressInput) {
+      progressInput.addEventListener('input', updateProgressBar);
+      progressInput.addEventListener('change', updateProgressBar);
+    }
+  });
+  </script>
+
+  <!-- 页面样式 -->
+  <style>
+  /* 自动补全列表样式 */
+  .suggestion-list {
+    position: absolute;
+    z-index: 1000;
+    width: calc(100% - 3rem);
+    margin-left: 3rem;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+  }
+  .suggestion-item {
+    padding: 8px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .suggestion-item:hover, .suggestion-item.active {
+    background-color: #f8f9fa;
+  }
+  .suggestion-item:last-child {
+    border-bottom: none;
+  }
+  .suggestion-item .task-number {
+    font-weight: 600;
+  }
+  .suggestion-item .project-code {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-left: 5px;
+  }
+
+  /* 设备历史记录树样式 */
+  .history-tree {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  .month-group {
+    border-left: 3px solid #dee2e6;
+    margin-left: 8px;
+  }
+  .month-header {
+    cursor: pointer;
+    padding: 8px 15px;
+    font-weight: 500;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .month-header:hover {
+    background-color: #f8f9fa;
+  }
+  .month-header .bi {
+    transition: transform 0.3s;
+  }
+  .month-header.collapsed .bi-chevron-down {
+    transform: rotate(-90deg);
+  }
+  .task-item {
+    padding: 8px 8px 8px 25px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+  }
+  .task-item:hover {
+    background-color: #f0f4f8;
+  }
+  .task-item .task-progress {
+    font-size: 0.8rem;
+  }
+  .task-item .task-date {
+    font-size: 0.8rem;
+    color: #6c757d;
+  }
+  .bench-status-running {
+    color: #28a745;
+  }
+  .bench-status-debugging {
+    color: #17a2b8;
+  }
+  .bench-status-fault {
+    color: #dc3545;
+  }
+  </style>
+
+<main class="main">
+    <!-- 错误消息显示区域 -->
+    {% if error_message %}
+    <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ error_message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/ban4.png' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href={% url 'experiment:experiment_tasks_long' %}>试验管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- 状态提示框 -->
+    <div id="alertBox" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+      <div id="alertMessage">提交成功！</div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Django消息通知 -->
+    {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- 设备运行信息登记表单 Section -->
+    <section id="device-run-section" class="section">
+      <div class="container" data-aos="fade-up">
+        <!-- 标题区域 -->
+        <div class="section-header mb-4">
+          <h2 class="mb-0">每日设备运行信息登记</h2>
+          <div class="section-divider"></div>
+          <p class="text-muted">记录每日设备运行状态、时长和试验进度</p>
+        </div>
+        
+        <div class="row">
+          <!-- 左侧设备历史记录树 -->
+          <div class="col-lg-3">
+            <div class="card shadow-lg border-0 rounded-lg mb-4">
+              <div class="card-header bg-primary py-2">
+                <h6 class="mb-0 text-white"><i class="bi bi-clock-history me-2 text-white"></i>设备历史记录</h6>
+              </div>
+              <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                  <div id="selectedDeviceInfo" class="list-group-item bg-light">
+                    <div class="device-selector">
+                      <form id="deviceSelectForm" method="GET" action="{% url 'experiment:experiment_tasks_run' %}">
+                        <div class="input-group">
+                          <span class="input-group-text bg-primary text-white">
+                            <i class="bi bi-tools"></i>
+                          </span>
+                          <select class="form-select" name="device_number" onchange="this.form.submit()">
+                            <option value="">请选择设备编号</option>
+                            {% for equipment in equipment_list %}
+                              <option value="{{ equipment.equipment_id }}" {% if selected_device == equipment.equipment_id %}selected{% endif %}>
+                                {{ equipment.equipment_id }}
+                              </option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                  {% if selected_device %}
+                    {% if device_history %}
+                      <div class="history-tree">
+                        <div class="list-group list-group-flush">
+                          {% for month in device_history %}
+                            <div class="list-group-item p-0 border-0">
+                              <div class="month-header d-flex justify-content-between align-items-center p-2 bg-light" 
+                                   data-bs-toggle="collapse" data-bs-target="#month_{{ forloop.counter }}">
+                                <span><i class="bi bi-calendar-month me-2"></i>{{ month.year_month }}</span>
+                                <span class="badge bg-secondary rounded-pill">{{ month.records|length }}</span>
+                                <i class="bi bi-chevron-down ms-2"></i>
+                              </div>
+                              <div id="month_{{ forloop.counter }}" class="collapse {% if forloop.first %}show{% endif %}">
+                                {% for record in month.records %}
+                                  <div class="task-item p-2 border-bottom" onclick="loadRecordDetails('{{ record.id }}')">
+                                    <div class="d-flex justify-content-between">
+                                      <span class="task-number fw-bold">{{ record.task_number }}</span>
+                                      <span class="task-progress badge bg-info">{{ record.progress }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1">
+                                      <small class="task-date text-muted">{{ record.date }}</small>
+                                      <small class="bench-status">{{ record.bench_status|default:'' }}</small>
+                                    </div>
+                                  </div>
+                                {% endfor %}
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class="text-center p-3 text-muted">
+                        <i class="bi bi-info-circle me-2"></i>该设备暂无历史记录
+                      </div>
+                    {% endif %}
+                  {% else %}
+                    <div class="text-center p-3 text-muted">
+                      <i class="bi bi-info-circle me-2"></i>请先选择设备编号
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <!-- 快速统计卡片 -->
+            <div class="card shadow-sm rounded-lg mb-4">
+              <div class="card-body p-3">
+                <h6 class="card-title text-primary"><i class="bi bi-graph-up me-2"></i>本月统计</h6>
+                {% if selected_device and device_history %}
+                  <div class="month-stats">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span>调试总时长:</span>
+                      <span class="badge bg-info">{{ device_stats.debugging_total|default:"0" }}小时</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span>运行总时长:</span>
+                      <span class="badge bg-success">{{ device_stats.running_total }}小时</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span>样件故障时长:</span>
+                      <span class="badge bg-danger">{{ device_stats.sample_fault_total|default:"0" }}小时</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span>设备故障时长:</span>
+                      <span class="badge bg-warning">{{ device_stats.bench_fault_total|default:"0" }}小时</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span>闲置总时长:</span>
+                      <span class="badge bg-secondary">{{ device_stats.idle_total|default:"0" }}小时</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                      <span>记录总数:</span>
+                      <span class="badge bg-primary">{{ device_stats.records_count }}</span>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="text-center text-muted">
+                    <small>请选择设备显示统计</small>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- 右侧表单卡片 -->
+          <div class="col-lg-9">
+        <div class="card shadow-lg border-0 rounded-lg overflow-hidden">
+          <div class="card-header bg-primary text-white py-3">
+            <h5 class="mb-0 text-white"><i class="bi bi-clipboard-data me-2 text-white"></i>信息登记表</h5>
+          </div>
+          <div class="card-body bg-light p-4">
+            <form id="deviceRunForm" class="needs-validation" method="post" action="{% url 'experiment:save_device_run' %}">
+              {% csrf_token %}
+              <!-- 表单ID隐藏域，用于区分新建和编辑 -->
+              <input type="hidden" id="recordId" name="id" value="">
+              
+              <!-- 基本信息分组 -->
+              <div class="form-card mb-4 p-4 bg-white rounded-3 shadow-sm">
+                <div class="form-section-header mb-3">
+                  <h6 class="text-primary fw-bold"><i class="bi bi-info-circle me-2"></i>基本信息</h6>
+                  <hr class="mt-2">
+                </div>
+                
+                <div class="row g-3">
+                  <div class="col-md-6 col-lg-4">
+                    <label for="deviceNumber" class="form-label fw-semibold">设备编号 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-tools"></i></span>
+                      <select class="form-select border-start-0" id="deviceNumber" name="device_number" required>
+                        <option value="">请选择设备编号</option>
+                        {% for equipment in equipment_list %}
+                        <option value="{{ equipment.equipment_id }}">{{ equipment.equipment_id }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="invalid-feedback">请选择设备编号</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4">
+                    <label for="benchStatus" class="form-label fw-semibold">台架状态 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-toggle-on"></i></span>
+                      <select class="form-select border-start-0" id="benchStatus" name="bench_status" required>
+                        <option value="">请选择状态</option>
+                        <option value="试验调试" data-color="info">试验调试</option>
+                        <option value="试验运行" data-color="success">试验运行</option>
+                        <option value="设备故障" data-color="danger">设备故障</option>
+                        <option value="样件故障" data-color="warning">样件故障</option>
+                      </select>
+                    </div>
+                    <div class="invalid-feedback">请选择台架状态</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4">
+                    <label for="responsiblePerson" class="form-label fw-semibold">登记人 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                      <input type="text" class="form-control border-start-0 bg-light" id="responsiblePerson" name="responsible_person" value="{{ request.user.username }}{% if request.user.last_name or request.user.first_name %} - {{ request.user.last_name }}{{ request.user.first_name }}{% endif %}" readonly required>
+                    </div>
+                    <div class="invalid-feedback">请输入登记人</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4">
+                    <label for="taskNumber" class="form-label fw-semibold">任务单号 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-file-earmark-text"></i></span>
+                      <input type="text" class="form-control border-start-0" id="taskNumber" name="task_number" required autocomplete="off">
+                    </div>
+                    <!-- 添加任务单号建议列表 -->
+                    <div id="taskNumberSuggestions" class="suggestion-list shadow-sm rounded-bottom d-none">
+                      <!-- 建议项目将通过JavaScript动态添加 -->
+                    </div>
+                    <div class="invalid-feedback">请输入任务单号</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4">
+                    <label for="taskStatus" class="form-label fw-semibold">任务状态 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-flag"></i></span>
+                      <select class="form-select border-start-0" id="taskStatus" name="task_status" required>
+                        <option value="">请选择状态</option>
+                        <option value="进行中" data-color="warning">进行中</option>
+                        <option value="暂停中" data-color="danger">暂停中</option>
+                        <option value="已完成" data-color="success">已完成</option>
+                      </select>
+                    </div>
+                    <div class="invalid-feedback">请选择任务状态</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4">
+                    <label for="date" class="form-label fw-semibold">日期 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-calendar3"></i></span>
+                      <input type="date" class="form-control border-start-0" id="date" name="date" required value="{{ today_date|date:'Y-m-d' }}">
+                    </div>
+                    <div class="invalid-feedback">请选择日期</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 样品信息分组 (自动填充区域) -->
+              <div class="form-card mb-4 p-4 bg-white rounded-3 shadow-sm">
+                <div class="form-section-header mb-3">
+                  <h6 class="text-primary fw-bold"><i class="bi bi-box me-2"></i>样品信息</h6>
+                  <hr class="mt-2">
+                </div>
+                
+                <div class="row g-3">
+                  <div class="col-md-6 col-lg-4">
+                    <label for="sampleModel" class="form-label fw-semibold">样件型号 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-tag"></i></span>
+                      <input type="text" class="form-control border-start-0" id="sampleModel" name="transmission_model" required>
+                    </div>
+                    <div class="invalid-feedback">请输入样件型号</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4">
+                    <label for="testContent" class="form-label fw-semibold">试验内容 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-clipboard"></i></span>
+                      <input type="text" class="form-control border-start-0" id="testContent" name="test_content" required>
+                    </div>
+                    <div class="invalid-feedback">请输入试验内容</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-4">
+                    <label for="sampleNumber" class="form-label fw-semibold">样品编号 <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-upc-scan"></i></span>
+                      <input type="text" class="form-control border-start-0" id="sampleNumber" name="sample_number" required>
+                    </div>
+                    <div class="invalid-feedback">请输入样品编号</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 运行时长分组 -->
+              <div class="form-card mb-4 p-4 bg-white rounded-3 shadow-sm">
+                <div class="form-section-header mb-3">
+                  <h6 class="text-primary fw-bold"><i class="bi bi-hourglass-split me-2"></i>运行时长（小时）</h6>
+                  <hr class="mt-2">
+                </div>
+                
+                <div class="row g-3">
+                  <div class="col-md-6 col-lg-3">
+                    <label for="debugging" class="form-label fw-semibold">调试时长</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-wrench"></i></span>
+                      <input type="number" class="form-control border-start-0" id="debugging" name="debugging" min="0" max="24" step="0.1" value="0" data-name="调试时长" onchange="validateTimeInput(this)">
+                    </div>
+                    <div class="invalid-feedback">请输入有效的调试时长（0-24小时）</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-3">
+                    <label for="running" class="form-label fw-semibold">运行时长</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-play-circle"></i></span>
+                      <input type="number" class="form-control border-start-0" id="running" name="running" min="0" max="24" step="0.1" value="0" data-name="运行时长" onchange="validateTimeInput(this)">
+                    </div>
+                    <div class="invalid-feedback">请输入有效的运行时长（0-24小时）</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-3">
+                    <label for="sampleFault" class="form-label fw-semibold">样件故障时长</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-exclamation-triangle"></i></span>
+                      <input type="number" class="form-control border-start-0" id="sampleFault" name="sample_fault" min="0" max="24" step="0.1" value="0" data-name="样件故障时长" onchange="validateTimeInput(this)">
+                    </div>
+                    <div class="invalid-feedback">请输入有效的故障时长（0-24小时）</div>
+                  </div>
+                  
+                  <div class="col-md-6 col-lg-3">
+                    <label for="benchFault" class="form-label fw-semibold">台架故障时长</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-x-circle"></i></span>
+                      <input type="number" class="form-control border-start-0" id="benchFault" name="bench_fault" min="0" max="24" step="0.1" value="0" data-name="台架故障时长" onchange="validateTimeInput(this)">
+                    </div>
+                    <div class="invalid-feedback">请输入有效的故障时长（0-24小时）</div>
+                  </div>
+                  
+                </div>
+              </div>
+              
+              <!-- 进度与计划分组 -->
+              <div class="form-card mb-4 p-4 bg-white rounded-3 shadow-sm">
+                <div class="form-section-header mb-3">
+                  <h6 class="text-primary fw-bold"><i class="bi bi-graph-up me-2"></i>进度与计划</h6>
+                  <hr class="mt-2">
+                </div>
+                
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label for="progress" class="form-label fw-semibold">试验进度 (%)</label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-percent"></i></span>
+                      <input type="number" class="form-control border-start-0" id="progress" name="progress" min="0" max="100" value="0" onchange="updateProgressBar()" oninput="updateProgressBar()">
+                      <span class="input-group-text">%</span>
+                    </div>
+                    <div class="progress mt-2 rounded-pill" style="height: 15px;">
+                      <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated rounded-pill" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="invalid-feedback">进度必须在0-100之间</div>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold d-block">是否DVP计划内</label>
+                    <div class="mt-2">
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="dvp_plan" id="dvpPlanYes" value="是" checked>
+                        <label class="form-check-label" for="dvpPlanYes">是</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="dvp_plan" id="dvpPlanNo" value="否">
+                        <label class="form-check-label" for="dvpPlanNo">否</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 备注信息 -->
+              <div class="form-card mb-4 p-4 bg-white rounded-3 shadow-sm">
+                <div class="form-section-header mb-3">
+                  <h6 class="text-primary fw-bold"><i class="bi bi-chat-square-text me-2"></i>备注信息</h6>
+                  <hr class="mt-2">
+                </div>
+                
+                <div class="row">
+                  <div class="col-12">
+                    <label for="remarks" class="form-label fw-semibold">备注</label>
+                    <textarea class="form-control" id="remarks" name="remarks" rows="3" placeholder="请输入备注信息..."></textarea>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 操作按钮 -->
+              <div class="row">
+                <div class="col-12 text-center">
+                  <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill" id="submitBtn">
+                    <span class="spinner-border spinner-border-sm d-none" id="submitSpinner" role="status" aria-hidden="true"></span>
+                    <span id="submitText"><i class="bi bi-check-circle me-1"></i>提交登记</span>
+                  </button>
+                  <button type="reset" class="btn btn-secondary px-4 py-2 rounded-pill ms-2">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>重置表单
+                  </button>
+                </div>
+              </div>
+              
+            </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section><!-- End 设备运行信息登记表单 Section -->
+
+  </main>
+
+{% endblock %}
+
+<script>
+// 设备运行信息登记相关JavaScript
+$(document).ready(function() {
+  // 页面初始化调试信息
+  console.log("页面加载完成，准备就绪");
+  console.log("当前URL路径:", window.location.pathname);
+
+  // 设备选择逻辑：注意，我们重新绑定了change事件
+  $('#deviceNumber').off('change').on('change', function() {
+    var deviceNumber = $(this).val();
+    console.log("设备选择改变:", deviceNumber);
+    
+    // 更新设备编号显示
+    if (deviceNumber) {
+      var selectedText = $(this).find('option:selected').text();
+      $('#deviceNumberDisplay').html('<i class="bi bi-tools me-2"></i>' + selectedText);
+      
+      // 手动触发加载历史记录 - 直接调用API
+      fetchDeviceHistory(deviceNumber);
+    } else {
+      $('#deviceNumberDisplay').html('<i class="bi bi-tools me-2"></i>请选择设备编号');
+      $('#deviceHistoryTree').html('<div class="text-center p-3 text-muted"><i class="bi bi-info-circle me-2"></i>请先选择设备编号</div>');
+      $('#deviceMonthStats').addClass('d-none');
+      $('#deviceStatsPlaceholder').removeClass('d-none');
+    }
+  });
+  
+  // 调试按钮处理
+  $('#debugBtn').show().off('click').on('click', function() {
+    var deviceNumber = $('#deviceNumber').val();
+    if (deviceNumber) {
+      fetchDeviceHistory(deviceNumber);
+      alert("已尝试获取设备历史，请查看控制台");
+    } else {
+      alert("请先选择一个设备编号");
+    }
+  });
+  
+  // 初始化日期选择器为当前日期
+  var today = new Date();
+  var dd = String(today.getDate()).padStart(2, '0');
+  var mm = String(today.getMonth() + 1).padStart(2, '0');
+  var yyyy = today.getFullYear();
+  today = yyyy + '-' + mm + '-' + dd;
+  
+  // 设置日期控件的默认值
+  document.getElementById('date').value = today;
+  
+  // 设置状态选择时的颜色变化
+  $('#taskStatus, #benchStatus').on('change', function() {
+    updateSelectColor(this);
+  });
+  
+  // 表单重置时处理
+  $('button[type="reset"]').on('click', function() {
+    setTimeout(function() {
+      $('#progressBar').css('width', '0%').attr('aria-valuenow', 0);
+      $('#progressBar').removeClass('bg-danger bg-warning bg-info bg-success');
+      $('#taskStatus, #benchStatus').removeClass('text-primary text-success text-danger text-warning text-info');
+      $('#date').val(today);
+    }, 10);
+  });
+  
+  // 表单提交验证
+  $('#deviceRunForm').on('submit', function(e) {
+    // 先阻止默认提交行为
+    e.preventDefault();
+    
+    // 执行时间验证
+    if (!validateTotalTime()) {
+      return false;
+    }
+    
+    // 样品信息验证
+    var sampleFields = ['sampleModel', 'testContent', 'sampleNumber'];
+    var sampleFieldsEmpty = false;
+    
+    sampleFields.forEach(function(field) {
+      var element = $('#' + field);
+      if (!element.val() || element.val().trim() === '') {
+        element.addClass('is-invalid');
+        sampleFieldsEmpty = true;
+      } else {
+        element.addClass('is-valid');
+      }
+    });
+    
+    if (sampleFieldsEmpty) {
+      alert('样件型号、试验内容、样品编号不能为空！');
+      return false;
+    }
+    
+    // 执行其他验证
+    if (!validateForm()) {
+      return false;
+    }
+    
+    // 显示提交中状态
+    $('#submitSpinner').removeClass('d-none');
+    $('#submitText').text('提交中...');
+    
+    // 确保idle字段计算正确
+    var debugging = parseFloat($('#debugging').val() || 0);
+    var running = parseFloat($('#running').val() || 0);
+    var sampleFault = parseFloat($('#sampleFault').val() || 0);
+    var benchFault = parseFloat($('#benchFault').val() || 0);
+    var idle = 24 - debugging - running - sampleFault - benchFault;
+    idle = idle < 0 ? 0 : idle;
+    
+    // 设置隐藏字段
+    $('<input>').attr({
+      type: 'hidden',
+      name: 'idle',
+      value: idle
+    }).appendTo('#deviceRunForm');
+    
+    // 表单验证通过，继续提交
+    this.submit();
+  });
+  
+  // 任务单号输入建议功能
+  setupTaskNumberSuggestions();
+});
+
+// 新的简化版设备历史记录获取函数
+function fetchDeviceHistory(deviceNumber) {
+  if (!deviceNumber) {
+    console.error("设备编号为空，无法获取历史记录");
+    return;
+  }
+  
+  console.log("正在获取设备历史:", deviceNumber);
+  
+  // 显示加载中状态
+  $('#deviceHistoryTree').html(
+    '<div class="text-center p-3">' +
+    '<div class="spinner-border spinner-border-sm text-primary" role="status"></div> ' +
+    '<span>加载中...</span>' +
+    '</div>'
+  );
+  
+  // 获取CSRF令牌
+  var csrfToken = $('#csrfToken').val();
+  
+  // 直接使用jQuery的AJAX
+  $.ajax({
+    url: '/experiment/api/get-device-history/',
+    type: 'GET',
+    data: { device_number: deviceNumber },
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    success: function(response) {
+      console.log("历史记录API响应:", response);
+      
+      if (response && response.status === 'success' && response.data) {
+        // 渲染历史记录树
+        renderHistoryTree(response.data);
+        
+        // 更新月度统计
+        updateDeviceMonthStats(response.data);
+      } else {
+        $('#deviceHistoryTree').html(
+          '<div class="text-center p-3 text-danger">' +
+          '<i class="bi bi-exclamation-triangle me-2"></i>' +
+          '获取失败: ' + (response.message || '未知错误') +
+          '</div>'
+        );
+      }
+    },
+    error: function(xhr, status, error) {
+      console.error("历史记录API请求失败:", status, error);
+      console.error("详细错误:", xhr.responseText);
+      
+      $('#deviceHistoryTree').html(
+        '<div class="text-center p-3 text-danger">' +
+        '<i class="bi bi-exclamation-triangle me-2"></i>' +
+        '请求失败，请重试或联系管理员' +
+        '</div>'
+      );
+    }
+  });
+}
+
+// 简化版历史记录树渲染函数
+function renderHistoryTree(historyData) {
+  console.log("开始渲染历史记录树:", historyData);
+  
+  if (!historyData || historyData.length === 0) {
+    $('#deviceHistoryTree').html(
+      '<div class="text-center p-3 text-muted">' +
+      '<i class="bi bi-info-circle me-2"></i>' +
+      '暂无历史记录' +
+      '</div>'
+    );
+    return;
+  }
+  
+  var html = '<div class="list-group list-group-flush">';
+  
+  // 遍历每个月份分组
+  historyData.forEach(function(month, index) {
+    var monthId = 'month_' + index;
+    
+    // 添加月份标题
+    html += '<div class="list-group-item p-0 border-0">';
+    html += '<div class="month-header d-flex justify-content-between align-items-center p-2 bg-light" data-bs-toggle="collapse" data-bs-target="#' + monthId + '">';
+    html += '<span><i class="bi bi-calendar-month me-2"></i>' + month.year_month + '</span>';
+    html += '<span class="badge bg-secondary rounded-pill">' + month.records.length + '</span>';
+    html += '<i class="bi bi-chevron-down ms-2"></i>';
+    html += '</div>';
+    
+    // 添加月份任务列表（第一个月默认展开）
+    var isFirst = (index === 0);
+    html += '<div id="' + monthId + '" class="collapse ' + (isFirst ? 'show' : '') + '">';
+    
+    // 添加每个任务项
+    month.records.forEach(function(record) {
+      html += '<div class="task-item p-2 border-bottom" data-record-id="' + record.id + '">';
+      html += '<div class="d-flex justify-content-between">';
+      html += '<span class="task-number fw-bold">' + record.task_number + '</span>';
+      html += '<span class="task-progress badge bg-info">' + record.progress + '</span>';
+      html += '</div>';
+      html += '<div class="d-flex justify-content-between mt-1">';
+      html += '<small class="task-date text-muted">' + record.date + '</small>';
+      html += '<small class="bench-status">' + (record.bench_status || '') + '</small>';
+      html += '</div>';
+      html += '</div>';
+    });
+    
+    html += '</div>'; // 结束月份任务列表
+    html += '</div>'; // 结束月份项
+  });
+  
+  html += '</div>'; // 结束列表组
+  
+  // 更新DOM
+  $('#deviceHistoryTree').html(html);
+  
+  // 绑定任务项点击事件
+  $('.task-item').on('click', function() {
+    var recordId = $(this).data('record-id');
+    console.log("点击任务项:", recordId);
+    if (recordId) {
+      loadRecordDetails(recordId);
+    }
+  });
+}
+
+// 更新设备月度统计
+function updateDeviceMonthStats(historyData) {
+  console.log("更新月度统计, 数据:", historyData);
+  if (!historyData || historyData.length === 0) {
+    $('#deviceMonthStats').addClass('d-none');
+    $('#deviceStatsPlaceholder').removeClass('d-none');
+    return;
+  }
+  
+  // 取第一个月的数据（最近的月份）
+  var currentMonthData = historyData[0].records;
+  var totalRecords = currentMonthData.length;
+  
+  if (totalRecords > 0) {
+    // 统计数据
+    var totalProgress = 0;
+    var totalRunning = 0;
+    var totalDebugging = 0;
+    var totalSampleFault = 0;
+    var totalBenchFault = 0;
+    var totalIdle = 0;
+    
+    // 计算各项时长和平均进度
+    currentMonthData.forEach(function(record) {
+      // 提取进度数值
+      var progress = record.progress;
+      if (progress && progress.includes('%')) {
+        progress = parseFloat(progress.replace('%', ''));
+        totalProgress += progress;
+      }
+      
+      // 累计各项时长
+      totalRunning += parseFloat(record.running || 0);
+      totalDebugging += parseFloat(record.debugging || 0);
+      totalSampleFault += parseFloat(record.sample_fault || 0);
+      totalBenchFault += parseFloat(record.bench_fault || 0);
+      
+      // 计算闲置时长 (如果数据中有idle字段直接使用，否则计算24-其他时长)
+      if (record.idle !== undefined) {
+        totalIdle += parseFloat(record.idle || 0);
+      } else {
+        var usedTime = parseFloat(record.running || 0) + 
+                       parseFloat(record.debugging || 0) + 
+                       parseFloat(record.sample_fault || 0) + 
+                       parseFloat(record.bench_fault || 0);
+        var idleTime = Math.max(0, 24 - usedTime);
+        totalIdle += idleTime;
+      }
+    });
+    
+    // 计算平均进度
+    var avgProgress = totalRecords > 0 ? Math.round(totalProgress / totalRecords) : 0;
+    
+    // 更新统计显示
+    $('#monthProgressAvg').text(avgProgress + '%');
+    $('#monthRecordsCount').text(totalRecords);
+    $('#monthRunningTotal').text(totalRunning.toFixed(1) + '小时');
+    
+    // 更新新增的统计项
+    // 调试总时长
+    if ($('.month-stats .badge').eq(0).length) {
+      $('.month-stats .badge').eq(0).text(totalDebugging.toFixed(1) + '小时');
+    }
+    // 运行总时长已在上面更新
+    
+    // 样件故障时长
+    if ($('.month-stats .badge').eq(2).length) {
+      $('.month-stats .badge').eq(2).text(totalSampleFault.toFixed(1) + '小时');
+    }
+    // 设备故障时长
+    if ($('.month-stats .badge').eq(3).length) {
+      $('.month-stats .badge').eq(3).text(totalBenchFault.toFixed(1) + '小时');
+    }
+    // 闲置总时长
+    if ($('.month-stats .badge').eq(4).length) {
+      $('.month-stats .badge').eq(4).text(totalIdle.toFixed(1) + '小时');
+    }
+    
+    // 显示统计区域
+    $('#deviceMonthStats').removeClass('d-none');
+    $('#deviceStatsPlaceholder').addClass('d-none');
+  } else {
+    $('#deviceMonthStats').addClass('d-none');
+    $('#deviceStatsPlaceholder').removeClass('d-none');
+  }
+}
+
+// 表单验证
+function validateForm() {
+  var isValid = true;
+  
+  // 移除所有验证状态
+  $('.form-control, .form-select').removeClass('is-invalid is-valid');
+  
+  // 验证必填字段
+  var requiredFields = ['taskNumber', 'taskStatus', 'date', 'deviceNumber', 'benchStatus', 'responsiblePerson'];
+  requiredFields.forEach(function(field) {
+    var element = $('#' + field);
+    if (!element.val()) {
+      element.addClass('is-invalid');
+      isValid = false;
+    } else {
+      element.addClass('is-valid');
+    }
+  });
+  
+  // 验证数字字段
+  var numberFields = ['debugging', 'running', 'sampleFault', 'benchFault', 'progress'];
+  numberFields.forEach(function(field) {
+    var element = $('#' + field);
+    var value = element.val();
+    
+    if (value === '' || isNaN(value) || parseFloat(value) < 0) {
+      element.addClass('is-invalid');
+      isValid = false;
+    } else {
+      element.addClass('is-valid');
+    }
+  });
+  
+  // 验证时长字段不超过24小时
+  var debugging = parseFloat($('#debugging').val() || 0);
+  var running = parseFloat($('#running').val() || 0);
+  var sampleFault = parseFloat($('#sampleFault').val() || 0);
+  var benchFault = parseFloat($('#benchFault').val() || 0);
+  
+  // 验证单个时长不超过24小时
+  if (debugging > 24) {
+    $('#debugging').addClass('is-invalid');
+    alert('调试时长不能超过24小时');
+    isValid = false;
+  }
+  
+  if (running > 24) {
+    $('#running').addClass('is-invalid');
+    alert('运行时长不能超过24小时');
+    isValid = false;
+  }
+  
+  if (sampleFault > 24) {
+    $('#sampleFault').addClass('is-invalid');
+    alert('样件故障时长不能超过24小时');
+    isValid = false;
+  }
+  
+  if (benchFault > 24) {
+    $('#benchFault').addClass('is-invalid');
+    alert('台架故障时长不能超过24小时');
+    isValid = false;
+  }
+  
+  // 验证总时长不超过24小时
+  var totalTime = debugging + running + sampleFault + benchFault;
+  if (totalTime > 24) {
+    $('#debugging, #running, #sampleFault, #benchFault').addClass('is-invalid');
+    alert('四个时长（调试、运行、样件故障、台架故障）的总和不能超过24小时');
+    isValid = false;
+  }
+  
+  // 特别验证进度值
+  var progress = parseFloat($('#progress').val());
+  if (progress < 0 || progress > 100) {
+    $('#progress').addClass('is-invalid');
+    isValid = false;
+  }
+  
+  return isValid;
+}
+</script>
+
+<style>
+/* 自定义样式 */
+.device-selector {
+  margin: 5px 0;
+}
+
+.task-item {
+  cursor: pointer;
+}
+
+.task-item:hover {
+  background-color: #f8f9fa;
+}
+</style>

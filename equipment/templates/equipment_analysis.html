@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/info_banner.png' %});">
+      <div class="container-fluid position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href="{% url 'equipment:equipment_analysis' %}">设备管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Filter Controls -->
+    <div class="container-fluid mt-1"><!-- 减小顶部间距 -->
+        <div class="row">
+            <!-- 时间单位选择容器 -->
+            <div class="col-md-4">
+                <div class="filter-container">
+                    <h6 class="filter-title">按时间单位查询</h6>
+                    <div class="d-flex align-items-center">
+                        <div class="custom-btn-group" role="group">
+                            <input type="radio" class="btn-check" name="viewType" id="yearView" value="year" checked>
+                            <label class="btn custom-btn" for="yearView">
+                                <i class="fas fa-calendar-alt"></i> 按年查看
+                            </label>
+
+                            <input type="radio" class="btn-check" name="viewType" id="monthView" value="month">
+                            <label class="btn custom-btn" for="monthView">
+                                <i class="fas fa-calendar-day"></i> 按月查看
+                            </label>
+
+                            <input type="radio" class="btn-check" name="viewType" id="weekView" value="week">
+                            <label class="btn custom-btn" for="weekView">
+                                <i class="fas fa-calendar-week"></i> 按周查看
+                            </label>
+                        </div>
+                        <div class="spinner-wrapper ms-3">
+                            <input type="number" class="form-control custom-spinner" id="timeSpinner">
+                            <div class="spinner-label" id="spinnerLabel">年</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日期范围选择容器 -->
+            <div class="col-md-3">
+                <div class="filter-container">
+                    <h6 class="filter-title">按时间段查询</h6>
+                    <div class="d-flex align-items-center">
+                        <div class="date-range-picker">
+                            <input type="date" class="form-control custom-date" id="startDate">
+                            <span class="date-separator">至</span>
+                            <input type="date" class="form-control custom-date" id="endDate">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="container-fluid mt-2"><!-- 减小与筛选控件的间距 -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body" style="height: 400px;">
+                        {% include "issue-pie-roseType-simple.html" %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body" style="height: 400px;">
+                        {% include "issue2-pie-roseType-simple.html" %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body" style="height: 400px;">
+                        {% include "issue-bar-y-category-stack.html" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+    .card {
+        margin-bottom: 15px; /* 减小卡片底部间距 */
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .card-body {
+        padding: 1.25rem;
+    }
+    .btn-group {
+        margin-right: 15px;
+    }
+    .form-control::-webkit-inner-spin-button,
+    .form-control::-webkit-outer-spin-button {
+        height: 30px;
+    }
+
+    .custom-btn-group {
+        display: flex;
+        background: #f8f9fa;
+        padding: 3px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .custom-btn {
+        color: #6c757d;
+        background: transparent;
+        border: none;
+        padding: 6px 12px;
+        margin: 0 3px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        font-size: 13px;
+    }
+
+    .custom-btn:hover {
+        background: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+    }
+
+    .btn-check:checked + .custom-btn {
+        background: #0d6efd;
+        color: white;
+        box-shadow: 0 2px 5px rgba(13, 110, 253, 0.2);
+    }
+
+    .spinner-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    .custom-spinner {
+        width: 100px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        padding: 4px 10px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .custom-spinner:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .spinner-label {
+        position: absolute;
+        top: -8px;
+        left: 8px;
+        padding: 0 4px;
+        font-size: 11px;
+        background: white;
+        color: #6c757d;
+    }
+
+    .custom-spinner::-webkit-inner-spin-button,
+    .custom-spinner::-webkit-outer-spin-button {
+        height: 32px;
+        opacity: 1;
+        background: #f8f9fa;
+        border-left: 1px solid #dee2e6;
+        cursor: pointer;
+    }
+
+    .filter-container {
+        background: white;
+        border-radius: 12px;
+        padding: 10px 5px 2px 5px; /* 减小内边距，特别是底部 */
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-bottom: 5px; /* 减小底部间距 */
+        height: 80px; /* 稍微减小高度 */
+        display: flex; /* 添加弹性布局 */
+        flex-direction: column; /* 垂直排列 */
+    }
+
+    .filter-title {
+        color: #495057;
+        margin-bottom: 8px; /* 减小标题底部间距 */
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .date-range-picker {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .custom-date {
+        width: 150px;
+        height: 32px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        padding: 4px 10px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .custom-date:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .date-separator {
+        color: #6c757d;
+        margin: 0 3px;
+        font-weight: 500;
+        font-size: 13px;
+    }
+
+    .custom-btn i {
+        font-size: 12px;
+        margin-right: 4px;
+    }
+
+    /* 添加新的容器高度样式 */
+    .row {
+        min-height: 100px; /* 减小最小高度 */
+    }
+</style>
+
+<!-- 添加 Font Awesome 图标库 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const timeSpinner = document.getElementById('timeSpinner');
+    const spinnerLabel = document.getElementById('spinnerLabel');
+    const radioButtons = document.getElementsByName('viewType');
+
+    // 获取当前日期信息
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const currentWeek = getWeekNumber(now);
+
+    // 设置初始值（默认为年份）和标签
+    timeSpinner.value = currentYear;
+    timeSpinner.min = 2000;
+    timeSpinner.max = currentYear;
+    spinnerLabel.textContent = '年';
+
+    // 根据选择的查看类型更新微调按钮的值、属性和标签
+    function updateSpinner(viewType) {
+        switch(viewType) {
+            case 'year':
+                timeSpinner.value = currentYear;
+                timeSpinner.min = 2000;
+                timeSpinner.max = currentYear;
+                spinnerLabel.textContent = '年';
+                break;
+            case 'month':
+                timeSpinner.value = currentMonth;
+                timeSpinner.min = 1;
+                timeSpinner.max = 12;
+                spinnerLabel.textContent = '月';
+                break;
+            case 'week':
+                timeSpinner.value = currentWeek;
+                timeSpinner.min = 1;
+                timeSpinner.max = 53;
+                spinnerLabel.textContent = '周';
+                break;
+        }
+    }
+
+    // 获取当前周数的辅助函数
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    }
+
+    // 监听单选按钮变化
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            updateSpinner(e.target.value);
+        });
+    });
+
+    // 设置日期范围选择器的初始值和最大值
+    const startDate = document.getElementById('startDate');
+    const endDate = document.getElementById('endDate');
+    const today = new Date().toISOString().split('T')[0];
+    
+    // 设置默认值为当前月的第一天和最后一天
+    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+        .toISOString().split('T')[0];
+    const lastDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+        .toISOString().split('T')[0];
+
+    startDate.value = firstDayOfMonth;
+    endDate.value = lastDayOfMonth;
+    endDate.max = today;
+
+    // 确保结束日期不能早于开始日期
+    startDate.addEventListener('change', function() {
+        endDate.min = startDate.value;
+        if(endDate.value < startDate.value) {
+            endDate.value = startDate.value;
+        }
+    });
+
+    // 确保开始日期不能晚于结束日期
+    endDate.addEventListener('change', function() {
+        startDate.max = endDate.value;
+        if(startDate.value > endDate.value) {
+            startDate.value = endDate.value;
+        }
+    });
+});
+</script>
+
+{% endblock %}

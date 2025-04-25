@@ -1,0 +1,131 @@
+<!--
+	此示例下载自 https://echarts.apache.org/examples/zh/editor.html?c=pie-roseType-simple&code=PYBwLglsB2AEC8sDeAoWsA2BTA5l6AJgFzJrqxigkDkARsGJQLbVkC-ANGZcBvQB4lU5WAGcAFsADuJMACcArli4iAZlgCGYBXKxCyIphrkBrIWMkyKirLE4HyBLRoBqELFaQXpsmx1i6GgQA8tAYAJ4kqhoYorb2Iui6opS65hI-1kp2KomiGgBuWACCogCSRnjplr7ZbA716AliWHLuoiQA2g7CidAaTHqw1AByEDjikNA4MbYAwuLGYNS5ImDhIEPUIO4rDklBEAodsJ0ArAAM_gBMlwC6q-QAxvhgrV3UlwCkK8Pf1A99gFgHEACobLbGTR7RKwCBvJgAZXW2H0sPQ9DkBFaACVDscSAAOIHNEROMAaLpA9BeAoxJQkAAsV1g_UGNDkINsAEZqDlqchYHSMAzYABmQn-NlbTlxWDXPmkxK0-lDMXXKUDGVc8WKx4iFUitUs6UcnWMvUCw2i66S1las1ys6W9GC4U2gBsmvZw1ltg9LvR1qG1w19p91D9sEJgdhwZI3Ltpt9OpjdiBgNhGA0tCwGDRrvI0GAciM-dIhfRqhLRkY71O1CQTwAPk22IBCazYv0btFbtDYXbuADoAFbACDQAAU1AAOtBqABKfWVgIQJ7iAsr9FPTdbwtPXgljk4WiT66M7kcc9e7kXRkLmF7yvV6BgREQABeIauAqf6BfYAAOpYOMkxEHQvAEI-f7ohgE5YAAEiBExgCQZy_iuSowbQu4wSIB4YEevonpOACckrcmKADsHDch6pEPsueGwAB75fgmZxMXh4jIWBsDMhhlZYZhXEiI06LCeg2a5hgAAy8G4eixaljEimVnB0BYMi4SohWzGwARRGRiR5G0dRtH0YxgmJJJhaiEwwAMBusAXEOGrWSI2DTGAzm3qJsH4DgPnXCQ1w_tZ4mwkq4l3CgbAANxAA
+	⚠ 请注意，该图表不是 Apache ECharts 官方示例，而是由用户代码生成的。请注意鉴别其内容。
+-->
+<!DOCTYPE html>
+<html lang="zh-CN" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="height: 100%; margin: 0">
+  <div id="container" style="height: 100%"></div>
+
+  
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+  <!-- Uncomment this line if you want to dataTool extension
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.4.0/dist/extension/dataTool.min.js"></script>
+  -->
+  <!-- Uncomment this line if you want to use gl extension
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts-gl@2/dist/echarts-gl.min.js"></script>
+  -->
+  <!-- Uncomment this line if you want to echarts-stat extension
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts-stat@latest/dist/ecStat.min.js"></script>
+  -->
+  <!-- Uncomment this line if you want to use map
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
+  -->
+  <!-- Uncomment these two lines if you want to use bmap extension
+  <script type="text/javascript" src="https://api.map.baidu.com/api?v=3.0&ak=YOUR_API_KEY"></script>
+  <script type="text/javascript" src="https://fastly.jsdelivr.net/npm/echarts@5.4.0/dist/extension/bmap.min.js"></script>
+  -->
+
+  <script type="text/javascript">
+    var dom = document.getElementById('container');
+    var myChart = echarts.init(dom, null, {
+      renderer: 'canvas',
+      useDirtyRect: false
+    });
+    var app = {};
+    
+    var option;
+
+    option = {
+  legend: {
+    top: 'top'
+  },
+  toolbox: {
+    show: true,
+    feature: {
+      mark: { show: true },
+      dataView: { show: true, readOnly: false },
+      restore: { show: true },
+      saveAsImage: { show: true }
+    }
+  },
+  series: [
+    {
+      name: 'Nightingale Chart',
+      type: 'pie',
+      radius: [20, 110],
+      center: ['50%', '50%'],
+      roseType: 'area',
+      itemStyle: {
+        borderRadius: 8
+      },
+      data: [
+        // { value: 40, name: '被试件' },
+        // { value: 38, name: '变频器' },
+        // { value: 32, name: '齿轮箱' },
+        // { value: 30, name: '传感器' },
+        // { value: 28, name: '电机' },
+        // { value: 26, name: '工装' },
+        // { value: 22, name: '控制柜' },
+        // { value: 18, name: '数据采集' },
+        // { value: 18, name: '水冷机' },
+        // { value: 18, name: '上位机' },
+        // { value: 18, name: '通讯' },
+        // { value: 18, name: 'PLC' },
+        // { value: 18, name: 'Delta' },
+      ],
+      label: {
+            normal: {
+                formatter: ['{c|{c}次}', '{b|{b}}'].join('\n'),
+                rich: {
+                    c: {
+                        color: 'rgb(245,149,50)',
+                        fontSize: 15,
+                        fontWeight:'bold',
+                        lineHeight: 3
+                    },
+                    b: {
+                        color: 'rgb(98,137,169)',
+                        fontSize: 17,
+                        height: 30
+                    },
+                },
+            }
+        },
+        labelLine: {
+            normal: {
+                lineStyle: {
+                    color: 'rgb(98,137,169)',
+                },
+                smooth: 0.2,
+                length: 10,
+                length2: 20,
+
+            }
+        },
+    }
+  ]
+};
+
+    if (option && typeof option === 'object') {
+      myChart.setOption(option);
+    }
+
+     function setValue(val_issue_style)
+    {
+      option.series[0].data = val_issue_style
+      // option.series[0].data[1].value = val_level2
+      // option.series[0].data[2].value = val_level3
+      // option.series[0].data[3].value = val_level4
+      // option.series[0].data[4].value = val_level5
+      myChart.setOption(option)
+    }
+
+    window.addEventListener('resize', myChart.resize);
+  </script>
+</body>
+</html>

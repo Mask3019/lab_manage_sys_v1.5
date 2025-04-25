@@ -1,0 +1,445 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/offices_banner.png' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href="{% url 'persons:persons_overtime_apply' %}">人员管理 / </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Starter Section -->
+    <section id="starter-section" class="starter-section section">
+
+      <!-- 将容器修改为全宽度，防止表格重叠 -->
+      <div class="container-fluid px-4 py-3">
+        <!-- 搜索控件部分 -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar me-2 text-primary"></i>  <!-- 添加年份图标 -->
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">加班年份</span>
+                                <select id="yearSelect" class="form-select">
+                                    <option value="">全部</option>
+                                    {% for year in years %}
+                                        <option value="{{ year }}">{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">加班月份</span>
+                                <select id="monthSelect" class="form-select">
+                                    <option value="">选择月份</option>
+                                    <!-- 月份选项会通过JavaScript动态填充 -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="d-flex align-items-center">
+                          <i class="fas fa-user me-2 text-primary"></i>
+                          <div class="input-group">
+                              <span class="input-group-text bg-light">加班人员</span>
+                              <select id="personSelect" class="form-select">
+                                  <option value="All">全部</option>
+                                  {% for person in persons %}
+                                      <option value="{{ person }}">{{ person }}</option>
+                                  {% endfor %}
+                              </select>
+                          </div>
+                      </div>
+                  </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- 加班申请列表 -->
+            <div class="col-md-9">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-gradient" style="background-color: #f8f9fa;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-clipboard-list text-primary me-2"></i>
+                            <h5 class="card-title mb-0 fw-bold">加班申请列表</h5>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0" id="applicationTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center" style="width: 4%">序号</th>
+                                        <th class="text-center" style="width: 12%">申请单号</th>
+                                        <th class="text-center" style="width: 6%">加班人员</th>
+                                        <th class="text-center" >加班原因</th>
+                                        <th class="text-center" style="width: 6%">加班时长</th>
+                                        <th class="text-center" style="width: 10%">审批结果</th>
+                                        <th class="text-center" style="width: 25%">驳回原因</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- 动态内容 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加班时长汇总 -->
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-gradient" style="background-color: #f8f9fa;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-chart-pie text-primary me-2"></i>
+                            <h5 class="card-title mb-0 fw-bold">加班时长汇总</h5>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0" id="summaryTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center">工号</th>
+                                        <th class="text-center">姓名</th>
+                                        <th class="text-center">申请</th>
+                                        <th class="text-center">通过</th>
+                                        <th class="text-center">驳回</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- 动态内容 -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </section><!-- /Starter Section -->
+
+  </main>
+
+  <!-- 引入 Font Awesome 图标库 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+
+  <!-- 自定义样式 -->
+  <style>
+    .tree ul {
+      list-style-type: none;
+      padding-left: 20px;
+    }
+
+    .tree li {
+      position: relative;
+      margin-left: -20px;
+    }
+
+    .tree-toggle {
+      cursor: pointer;
+      user-select: none;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .tree-toggle .fa {
+      margin-right: 5px;
+      transition: transform 0.2s;
+    }
+
+    .tree li ul {
+      display: none;
+    }
+
+    .tree li.expanded > ul {
+      display: block;
+    }
+
+    .tree-toggle .fa {
+      color: #007bff;
+      font-size: 16px;
+    }
+
+    .tree li ul li {
+      margin-left: 20px;
+      list-style-type: disc;
+    }
+
+    /* 高亮选中的树节点，颜色更明显 */
+    .tree li:hover > .tree-toggle, .tree li ul li:hover {
+      background-color: #d0e4f5;
+    }
+
+    /* 调整卡片标题样式 */
+    .card-header .card-title {
+      margin: 0;
+    }
+
+    .card {
+        border: none;
+        border-radius: 0.5rem;
+    }
+
+    .card-header {
+        border-bottom: 1px solid rgba(0,0,0,.125);
+        padding: 1rem;
+    }
+
+    .table th {
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,123,255,0.05);
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border: 1px solid #ced4da;
+        font-size: 0.875rem;
+    }
+
+    .form-select {
+        font-size: 0.875rem;
+    }
+
+    /* 添加汇总行样式 */
+    .table-secondary {
+        background-color: #f8f9fa;
+    }
+
+    .fw-bold {
+        font-weight: bold;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    /* 表格标题样式 */
+    .card-title {
+        font-size: 1.25rem;  /* 20px */
+        font-weight: bold;
+    }
+
+    /* 表头列名样式 */
+    .table thead th {
+        font-size: 1rem;  /* 16px */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        padding: 0.75rem;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    /* 表格内容样式 */
+    .table tbody td {
+        font-size: 0.875rem;  /* 14px */
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+
+    /* 汇总行样式 */
+    .table .table-secondary {
+        font-size: 0.875rem;  /* 14px */
+        font-weight: bold;
+    }
+  </style>
+
+  <!-- JavaScript，用于处理树控件和表格 -->
+  <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初次加载数据
+        fetchData();
+
+        // 监听筛选条件变化
+        document.getElementById('personSelect').addEventListener('change', fetchData);
+        document.getElementById('yearSelect').addEventListener('change', updateMonthSelect);
+        document.getElementById('monthSelect').addEventListener('change', fetchData);
+
+        function updateMonthSelect() {
+            const year = document.getElementById('yearSelect').value;
+            const monthSelect = document.getElementById('monthSelect');
+            monthSelect.innerHTML = '<option value="">选择月份</option>';
+            
+            if (year) {
+                // 生成1-12月的选项
+                for (let i = 1; i <= 12; i++) {
+                    const monthValue = `${year}-${i.toString().padStart(2, '0')}`;
+                    const option = document.createElement('option');
+                    option.value = monthValue;
+                    option.textContent = `${i}月`;
+                    monthSelect.appendChild(option);
+                }
+            }
+            fetchData();
+        }
+
+        function fetchData() {
+            const person = document.getElementById('personSelect').value;
+            const year = document.getElementById('yearSelect').value;
+            const month = document.getElementById('monthSelect').value;
+            
+            const params = new URLSearchParams();
+            if (person !== 'All') params.append('person', person);
+            if (year) params.append('year', year);
+            if (month) params.append('month', month);
+
+            fetch(`{% url 'persons:persons_overtime_analysis' %}?${params.toString()}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                renderTable(data.applications);
+                renderSummary(data.summary);
+            })
+            .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function renderTable(applications) {
+            const tbody = document.querySelector('#applicationTable tbody');
+            tbody.innerHTML = '';
+
+            applications.forEach((app, index) => {
+                const tr = document.createElement('tr');
+                
+                // 添加所有单元格
+                const cells = [
+                    index + 1,
+                    app.application_number,
+                    app.overtime_employee_name,
+                    app.reason,
+                    app.duration,
+                    getApprovalStatus(app),
+                    app.department_leader_rejection_reason || app.line_leader_rejection_reason || 
+                    app.general_management_rejection_reason || ''
+                ];
+
+                cells.forEach((content, i) => {
+                    const td = document.createElement('td');
+                    td.textContent = content;
+                    
+                    // 为审批状态设置颜色
+                    if (i === 5) {
+                        const statusColor = getStatusColor(app);
+                        td.style.color = statusColor;
+                    }
+                    
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function getApprovalStatus(app) {
+            if (app.general_management_approval === true) return '综合管理已批准';
+            if (app.general_management_approval === false) return '综合管理已驳回';
+            if (app.department_leader_approval === true) return '待综合管理审批';
+            if (app.department_leader_approval === false) return '部门领导已驳回';
+            if (app.line_leader_approval === true) return '待部门领导审批';
+            if (app.line_leader_approval === false) return '条线领导已驳回';
+            return '待审批';
+        }
+
+        function getStatusColor(app) {
+            if (app.general_management_approval === true) return '#28a745';
+            if (app.general_management_approval === false) return '#dc3545';
+            if (app.department_leader_approval === true) return '#ffc107';
+            if (app.department_leader_approval === false) return '#dc3545';
+            if (app.line_leader_approval === true) return '#ffc107';
+            if (app.line_leader_approval === false) return '#dc3545';
+            return '#ffc107';
+        }
+
+        function renderSummary(summaryData) {
+            const tbody = document.querySelector('#summaryTable tbody');
+            tbody.innerHTML = '';
+
+            let totalApplied = 0;
+            let totalApproved = 0;
+            let totalRejected = 0;
+
+            summaryData.forEach(function(item) {
+                const tr = document.createElement('tr');
+                
+                // 添加单元格
+                const cells = [
+                    item.employee_id,
+                    item.name,
+                    parseFloat(item.total_duration).toFixed(1),
+                    parseFloat(item.approved_duration).toFixed(1),
+                    parseFloat(item.rejected_duration).toFixed(1)
+                ];
+
+                cells.forEach((content, index) => {
+                    const td = document.createElement('td');
+                    td.textContent = content;
+                    td.classList.add('text-center'); // 居中对齐
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+
+                // 累加总数
+                totalApplied += parseFloat(item.total_duration);
+                totalApproved += parseFloat(item.approved_duration);
+                totalRejected += parseFloat(item.rejected_duration);
+            });
+
+            // 添加合计行
+            const totalRow = document.createElement('tr');
+            totalRow.classList.add('table-secondary', 'fw-bold');
+            
+            const totalCells = [
+                '合计',
+                '-',
+                totalApplied.toFixed(1),
+                totalApproved.toFixed(1),
+                totalRejected.toFixed(1)
+            ];
+
+            totalCells.forEach((content, index) => {
+                const td = document.createElement('td');
+                td.textContent = content;
+                td.classList.add('text-center');
+                if (index === 0) td.colSpan = "2"; // 第一个单元格占两列
+                if (index === 1) return; // 跳过第二个单元格
+                totalRow.appendChild(td);
+            });
+
+            tbody.appendChild(totalRow);
+        }
+
+    });
+  </script>
+
+{% endblock %}

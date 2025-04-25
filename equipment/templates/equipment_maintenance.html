@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="main">
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/info_banner.png' %})">
+        <div class="container position-relative">
+            <h1>{{ page_title }}</h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a href="/">首页</a></li>
+                    <li class="current"><a href="{% url 'equipment:equipment_maintenance' %}">设备管理 / </a>{{ page_title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    <!-- End Page Title -->
+
+    <!-- Maintenance Records Section -->
+    <section class="section">
+        <div class="container-fluid" data-aos="fade-up">
+            <div class="row">
+                <!-- Left Column: Pending Maintenance List -->
+                <div class="col-md-3">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h2 class="h5 mb-0">待保养清单</h2>
+                        </div>
+                        <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                            <div class="list-group list-group-flush">
+                                {% for equipment in pending_equipments %}
+                                    <a href="{% url 'equipment:add_maintenance_record' %}?equipment_id={{ equipment.equipment_id }}"
+                                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center hover-shadow">
+                                        <div>
+                                            <h6 class="mb-1">{{ equipment.equipment_id }} - {{ equipment.name }}</h6>
+                                            <small class="text-muted">下次保养日期：{{ equipment.next_maintenance_date }}</small>
+                                        </div>
+                                        <span class="badge bg-warning text-dark rounded-pill">待保养</span>
+                                    </a>
+                                {% empty %}
+                                    <div class="text-center py-3">
+                                        <i class="bi bi-check-circle text-success h3"></i>
+                                        <p class="text-muted mb-0">暂无待保养设备</p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Right Column: Maintenance Records -->
+                <div class="col-md-9">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h2 class="h5 mb-0">保养记录</h2>
+                            <a href="{% url 'equipment:add_maintenance_record' %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-plus-circle me-1"></i>添加保养记录
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <form method="get" class="d-flex gap-3">
+                                        <div class="flex-grow-1">
+                                            <label for="year_filter" class="form-label">年份筛选</label>
+                                            <select name="year_filter" id="year_filter" class="form-select" onchange="this.form.submit()">
+                                                <option value="">全部年份</option>
+                                                {% for year in maintenance_years %}
+                                                <option value="{{ year }}" {% if year|stringformat:"s" == selected_year|stringformat:"s" %}selected{% endif %}>{{ year }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <label for="equipment_id_filter" class="form-label">设备编号</label>
+                                            <select name="equipment_id_filter" id="equipment_id_filter" class="form-select" onchange="this.form.submit()">
+                                                <option value="">全部设备</option>
+                                                {% for eid in equipment_ids %}
+                                                <option value="{{ eid }}" {% if eid|stringformat:"s" == selected_equipment_id %}selected{% endif %}>{{ eid }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive" style="max-height: 600px;">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light sticky-top" style="z-index: 1;">
+                                        <tr>
+                                            <th style="width: 10%;">设备编号</th>
+                                            <th style="width: 25%;">设备名称</th>
+                                            <th style="width: 12%;">保养日期</th>
+                                            <th style="width: 12%;">下次保养日期</th>
+                                            <th>保养内容</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in records %}
+                                        <tr>
+                                            <td><span class="text-primary">{{ record.equipment.equipment_id }}</span></td>
+                                            <td>{{ record.equipment.name }}</td>
+                                            <td>{{ record.maintenance_date }}</td>
+                                            <td>{{ record.next_maintenance_date }}</td>
+                                            <td>{{ record.description }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-muted">
+                                                <i class="bi bi-inbox h3 d-block"></i>
+                                                暂无保养记录
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

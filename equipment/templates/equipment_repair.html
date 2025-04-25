@@ -1,0 +1,761 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block content %}
+<main class="main">
+
+  <!-- Page Title -->
+  <div class="page-title dark-background" style="background-image: url({% static 'images/offices_banner.png' %});">
+    <div class="container position-relative">
+      <h1>{{ page_title }}</h1>
+      <nav class="breadcrumbs">
+        <ol>
+          <li><a href="/">首页</a></li>
+          <li class="current">
+            <a href="{% url 'equipment:equipment_repair' %}">设备管理 / </a>{{ page_title }}
+          </li>
+        </ol>
+      </nav>
+    </div>
+  </div>
+  <!-- End Page Title -->
+
+
+  <!-- Starter Section -->
+  <section id="starter-section" class="starter-section section">
+    <div class="container" data-aos="fade-up" style="margin-top: 20px; margin-bottom: 20px;">
+      <div class="row">
+
+        <!-- 左侧下拉框和树控件，调整为 20% -->
+        <div class="col-md-3" style="width: 20%;">
+          <!-- 卡片开始 -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title">搜索</h5>
+            </div>
+            <div class="card-body">
+              <!-- 年份下拉框 -->
+              <div class="form-group">
+                <label for="yearSelect">选择年份:</label>
+                <select id="yearSelect" class="form-control">
+                  {% for year in years %}
+                    <option value="{{ year }}">{{ year }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <!-- 树控件 -->
+              <div id="treeView" style="border: 1px solid #ccc; padding: 10px;">
+                <!-- 树结构将在前端通过 JavaScript 生成 -->
+              </div>
+            </div>
+          </div>
+          <!-- 卡片结束 -->
+        </div>
+
+        <!-- 右侧表单，调整为 65% -->
+        <div class="col-md-9" style="width: 65%;">
+          <!-- 卡片开始 -->
+          <div class="card shadow">
+            <!-- 卡片顶部标题 -->
+            <div class="card-header text-center" style="font-size: 1.5rem; font-weight: bold;">
+              设备维修申请
+            </div>
+            <div class="card-body">
+
+              <!-- 显示消息 -->
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-{{ message.tags }} text-center alert-dismissible fade show" role="alert" {% if 'error' in message.tags %}style="color: red; font-weight: bold;"{% endif %}>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+
+              <!-- 申请表单开始 -->
+              <form method="POST" action="{% url 'equipment:save_device_repair_application' %}" id="overtimeForm">
+                {% csrf_token %}
+
+                <!-- 第一行：申请编号、工号、提交人姓名、申请日期 -->
+                <div class="row mb-4">
+                  <div class="col-md-3">
+                    <div class="form-group">
+                      <label for="application_number">申请编号:</label>
+                      <input type="text" id="application_number" name="application_number" class="form-control" value="{{ application_number }}" readonly style="background-color: #e9ecef;">
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="form-group">
+                      <label for="employee_id">工号:</label>
+                      <input type="text" id="employee_id" name="employee_id" class="form-control" value="{{ employee_id }}" readonly style="background-color: #e9ecef;">
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="form-group">
+                      <label for="submitter_name">提交人姓名:</label>
+                      <input type="text" id="submitter_name" name="submitter_name" class="form-control" value="{{ submitter_name }}" readonly style="background-color: #e9ecef;">
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="form-group">
+                      <label for="application_date">申请日期:</label>
+                      <input type="text" id="application_date" name="application_date" class="form-control" value="{{ application_date }}">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 第二行：设备编号 -->
+                <div class="row mb-4">
+                  <div class="col-md-12">
+                    <div class="form-group">
+                      <label for="device_name">设备编号:</label>
+                      <select id="device_name" name="device_name" class="form-control" required>
+                        <option value="">请选择要维修设备</option>
+                        {% for equipment in equipments %}
+                          <option value="{{ equipment.equipment_id }} - {{ equipment.name }}">{{ equipment.equipment_id }} - {{ equipment.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 第三行：设备故障描述 -->
+                <div class="row mb-4">
+                  <div class="col-md-12">
+                    <div class="form-group position-relative">
+                      <label for="fault_phenomenon">设备故障现象描述:</label>
+                      <textarea id="fault_phenomenon" name="fault_phenomenon" class="form-control" rows="4" required></textarea>
+                      <!-- 提示框 -->
+                      <div id="hint-box" class="alert alert-info position-absolute" style="display: none; bottom: 100%; left: 0; width: 100%; margin-bottom: 5px;">
+                        提示：设备的哪个部件，发生了什么样的问题，问题要尽量详细最好有数据和证据支撑。
+                        <br>案例：输出端轴承座振动大，空载测试0~6000r/min；在5100r/min时，振动值为9.5mm/s。
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 添加的分割线 -->
+                <hr style="border-top: 1px dashed #022c55; border-width: 2px;">
+
+                <!-- 新增控件开始 -->
+                {% if user_permissions|length > 0 %}
+                  <!-- 第四行：故障等级和故障位置 -->
+                  <div class="row mb-4">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="fault_level">故障等级:</label>
+                        <select id="fault_level" name="fault_level" class="form-control">
+                          <option value="">请选择故障等级</option>
+                          <option value="level1">level1</option>
+                          <option value="level2">level2</option>
+                          <option value="level3">level3</option>
+                          <option value="level4">level4</option>
+                          <option value="level5">level5</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="fault_locations">故障位置:</label>
+                        <select id="fault_locations" name="fault_locations" class="form-control">
+                          <option value="">请选择故障位置</option>
+                          <option value="变频器">变频器</option>
+                          <option value="电机">电机</option>
+                          <option value="扭矩仪">扭矩仪</option>
+                          <option value="齿轮箱">齿轮箱</option>
+                          <option value="控制柜">控制柜</option>
+                          <option value="数据采集">数据采集</option>
+                          <option value="水冷机">水冷机</option>
+                          <option value="上位机">上位机</option>
+                          <option value="通讯">通讯</option>
+                          <option value="PLC">PLC</option>
+                          <option value="振动监测">振动监测</option>
+                          <option value="轴承座（筒体）">轴承座（筒体）</option>
+                        </select>
+                      </div>
+                    </div>
+                    <!-- 维修时长 -->
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="duration">维修时长（天）:</label>
+                        <input type="text" id="duration" name="duration" class="form-control" value="{{ duration }}" readonly style="background-color: #e9ecef;">
+                      </div>
+                    </div>
+                    <!-- 更新日期 -->
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="end_time">更新日期:</label>
+                        <input type="text" id="end_time" name="end_time" class="form-control" value="{{ end_time }}" readonly style="background-color: #e9ecef;">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 第五行：故障原因 -->
+                  <div class="row mb-4">
+                    <div class="col-md-12">
+                      <div class="form-group position-relative">
+                        <label for="fault_reason">故障原因:</label>
+                        <textarea id="fault_reason" name="fault_reason" class="form-control" rows="3"></textarea>
+                        <!-- 提示框 -->
+                        <div id="hint-box2" class="alert alert-info position-absolute" style="display: none; bottom: 100%; left: 0; width: 100%; margin-bottom: 5px;">
+                          提示：详细说明描述故障原因。
+                          <br>案例：1、输出端对中变差，有原来的10丝变为100丝（左右偏差）；2、连接用的螺栓长度不一致。
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 第六行：维修明细 -->
+                  <div class="row mb-4">
+                    <div class="col-md-12">
+                      <div class="form-group position-relative">
+                        <label for="solution">维修明细（需包括排查过程）:</label>
+                        <textarea id="solution" name="solution" class="form-control" rows="3"></textarea>
+                        <!-- 提示框 -->
+                        <div id="hint-box3" class="alert alert-info position-absolute" style="display: none; bottom: 100%; left: 0; width: 100%; margin-bottom: 5px;">
+                          提示：尽量包含：问题锁定途径/工具/细节描述/经验/备注/附件。
+                          <br>案例：问题锁定过程：试验前，发现轴承座处振动异常；更换轴承座，发现振动依旧异常，工字法兰处径向晃动大，拆下后发现螺栓安装不到位，更换全部工字法兰和磨片处全部螺栓，并重新对中打表在5丝左右，再次测试振动正常。
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+                <!-- 新增控件结束 -->
+
+                <!-- 审批流程 -->
+                {% include 'approval_process.html' %}
+
+                <!-- 按钮组 -->
+                <div class="d-flex justify-content-end">
+                  {% if user_permissions|length > 0 %}
+                    {% if 'equipment.can_approve_device_repairer' in user_permissions %}
+                      <button type="submit" class="btn btn-success me-2" id="submitBtn">更新申请</button>
+                      <button type="button" class="btn btn-danger me-2" id="deleteBtn">删除申请</button>
+                      <button type="button" class="btn btn-secondary" id="clearBtn">清空内容</button>
+                    {% else %}
+                      <button type="submit" class="btn btn-success me-2" id="submitBtn">提交</button>
+                    {% endif %}
+                  {% else %}
+                    <!-- 运行人员 -->
+                    <button type="submit" class="btn btn-success me-2" id="submitBtn">提交申请</button>
+                    <button type="button" class="btn btn-danger me-2" id="deleteBtn">删除申请</button>
+                    <button type="button" class="btn btn-secondary" id="clearBtn">清空内容</button>
+                  {% endif %}
+                </div>
+              </form>
+              <!-- 申请表单结束 -->
+            </div>
+          </div>
+        </div>
+        <!-- 右侧审批流程图，调整为 15% -->
+        <div class="col-md-3" style="width: 15%;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">审批进度</h5>
+                </div>
+                <div class="card-body">
+                    <div class="approval-flow">
+                        <style>
+                            .flow-step {
+                                padding: 10px;
+                                margin: 5px 0;
+                                border: 1px solid #ddd;
+                                border-radius: 5px;
+                                text-align: center;
+                                position: relative;
+                                background-color: transparent; /* 默认无颜色填充 */
+                              }
+
+                              .flow-step::after {
+                                content: "↓";
+                                position: absolute;
+                                bottom: -20px;
+                                left: 50%;
+                                transform: translateX(-50%);
+                                font-size: 16px;
+                                color: #666;
+                              }
+
+                              .flow-step:last-child::after {
+                                display: none;
+                              }
+
+                              .step-green {
+                                background-color: #d4edda; /* 绿色填充表示已通过 */
+                              }
+
+                              .step-yellow {
+                                background-color: #fff3cd; /* 黄色填充表示当前待审批 */
+                              }
+                        </style>
+
+                        <div class="flow-step {% if application.area_leader_approval == True %}step-green{% elif application.area_leader_approval == None and application.area_leader_approval != False %}step-yellow{% endif %}">
+                            区域主管审批
+                        </div>
+                        <div class="flow-step {% if application.line_leader_approval == True %}step-green{% elif application.area_leader_approval == True and application.line_leader_approval == None %}step-yellow{% endif %}">
+                            条线领导审批
+                        </div>
+                        <div class="flow-step {% if application.device_manager_approval == True %}step-green{% elif application.line_leader_approval == True and application.device_manager_approval == None %}step-yellow{% endif %}">
+                            设备管理员审批
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- /Starter Section -->
+
+</main>
+
+<!-- 将 applications 数据传递给 JavaScript -->
+{{ applications|json_script:"appData" }}
+<!-- 将 user_permissions 数据传递给 JavaScript -->
+{{ user_permissions|json_script:"userPermissions" }}
+
+<!-- 确认提交模态框 -->
+<div class="modal fade" id="confirmSubmitModal" tabindex="-1" aria-labelledby="confirmSubmitModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmSubmitModalLabel">确认提交</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        请您再次确认设备维修申请信息。
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="confirmSubmitBtn">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 确认删除模态框 -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">确认删除</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        您确定要删除此设备维修申请吗？
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 引入 Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- 引入 Font Awesome 图标库 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+
+<script>
+  // JavaScript 部分代码，已优化结构和可读性
+  (function() {
+    // 获取 applications 和 user_permissions 数据
+    const applications = JSON.parse(document.getElementById('appData').textContent);
+    const userPermissions = JSON.parse(document.getElementById('userPermissions').textContent);
+    const currentUser = "{{ request.user.username }}";
+
+    // 初始化树控件
+    function buildTree() {
+      const yearSelect = document.getElementById('yearSelect');
+      const treeView = document.getElementById('treeView');
+      treeView.innerHTML = '';
+      const selectedYear = yearSelect.value;
+
+      // 筛选出选中年份的申请
+      let filteredApps = applications.filter(app => {
+        const year = new Date(app.application_date).getFullYear();
+        return year == selectedYear;
+      });
+
+      // 根据用户权限筛选数据
+      if (!['equipment.can_approve_line_leader', 'equipment.can_approve_department_leader', 'equipment.can_approve_area_leader', 'equipment.can_approve_device_manager', 'equipment.can_approve_device_repairer'].some(perm => userPermissions.includes(perm))) {
+        // 运行人员，只显示自己的数据
+        filteredApps = filteredApps.filter(app => app.employee_id === currentUser);
+      }
+
+      // 构建月份为键的对象
+      const monthDict = {};
+      filteredApps.forEach(app => {
+        const month = new Date(app.application_date).getMonth() + 1;
+        if (!monthDict[month]) monthDict[month] = [];
+        monthDict[month].push(app);
+      });
+
+      // 创建树结构
+      for (let month = 1; month <= 12; month++) {
+        const monthApps = monthDict[month];
+        if (monthApps) {
+          // 创建月份节点
+          const monthNode = document.createElement('div');
+          monthNode.innerHTML = `<i class="fas fa-plus-square"></i> <strong>${month}月</strong>`;
+          monthNode.style.cursor = 'pointer';
+          monthNode.style.marginBottom = '5px';
+
+          // 创建申请编号子节点
+          const appList = document.createElement('ul');
+          appList.style.display = 'none';
+
+          monthNode.addEventListener('click', function() {
+            if (appList.style.display === 'none') {
+              appList.style.display = 'block';
+              this.querySelector('i').classList.replace('fa-plus-square', 'fa-minus-square');
+            } else {
+              appList.style.display = 'none';
+              this.querySelector('i').classList.replace('fa-minus-square', 'fa-plus-square');
+            }
+          });
+
+          monthApps.forEach(app => {
+            const appItem = document.createElement('li');
+            // 修改状态判断逻辑
+            let statusText = '';
+            let statusColor = '';
+            
+            if (app.rejected_to) {
+              statusText = '待区域主管审批';
+              statusColor = 'orange';
+            } else if (app.area_leader_approval === null) {
+              statusText = '待区域主管审批';
+              statusColor = 'orange';
+            } else if (app.area_leader_approval === false) {
+              statusText = '区域主管已驳回';
+              statusColor = 'red';
+            } else if (app.line_leader_approval === null) {
+              statusText = '待条线领导审批';
+              statusColor = 'orange';
+            } else if (app.line_leader_approval === false) {
+              statusText = '条线领导已驳回';
+              statusColor = 'red';
+            } else if (app.device_manager_approval === null) {
+              statusText = '待设备管理员审批';
+              statusColor = 'orange';
+            } else if (app.device_manager_approval === false) {
+              statusText = '设备管理员已驳回';
+              statusColor = 'red';
+            } else if (app.area_leader_approval === true && 
+                      app.line_leader_approval === true && 
+                      app.device_manager_approval === true) {
+              statusText = '审核通过';
+              statusColor = 'green';
+            }
+            
+            // 修改显示格式为 "编号 - 状态"
+            appItem.textContent = `${app.application_number} - ${statusText}`;
+            appItem.style.cursor = 'pointer';
+            appItem.dataset.appId = app.id;
+            appItem.style.color = statusColor;
+
+            // 添加点击事件，加载申请数据到表单
+            appItem.addEventListener('click', function(event) {
+            event.stopPropagation();
+            const appId = this.dataset.appId;
+
+            fetch("{% url 'equipment:get_device_repair_application_data' %}", {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': '{{ csrf_token }}',
+              'X-Requested-With': 'XMLHttpRequest',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'application_id=' + appId,
+            })
+            .then(response => response.json())
+            .then(data => {
+            if (data.status === 'success') {
+              // 更新表单字段
+              const fields = ['application_number', 'employee_id', 'submitter_name', 'application_date', 'fault_phenomenon', 'fault_level', 'fault_locations', 'fault_reason', 'device_name', 'solution', 'end_time', 'duration'];
+              fields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element) element.value = data.data[field] || '';
+              });
+
+              // 更新右侧的审批流程图
+              const approvalFlow = document.querySelector('.approval-flow');
+              if (approvalFlow) {
+                approvalFlow.querySelectorAll('.flow-step').forEach(step => {
+                  step.classList.remove('step-yellow', 'step-green', 'step-gray');
+
+                  const role = step.textContent.trim();
+                  
+                  // 根据不同角色的审批状态更新显示
+                  if (role === '领导主管审批') {
+                    if (data.data['area_leader_approval'] === true) {
+                      step.classList.add('step-green');
+                    } else if (data.data['area_leader_approval'] === null) {
+                      step.classList.add('step-yellow');
+                    }
+                  } else if (role === '设备维修员审批') {
+                    if (data.data['device_repairer_approval'] === true) {
+                      step.classList.add('step-green');
+                    } else if (data.data['area_leader_approval'] === true && data.data['device_repairer_approval'] === null) {
+                      step.classList.add('step-yellow');
+                    }
+                  } else if (role === '条线领导审批') {
+                    if (data.data['line_leader_approval'] === true) {
+                      step.classList.add('step-green');
+                    } else if (data.data['device_repairer_approval'] === true && data.data['line_leader_approval'] === null) {
+                      step.classList.add('step-yellow');
+                    }
+                  } else if (role === '部门领导审批') {
+                    if (data.data['department_leader_approval'] === true) {
+                      step.classList.add('step-green');
+                    } else if (data.data['line_leader_approval'] === true && data.data['department_leader_approval'] === null) {
+                      step.classList.add('step-yellow');
+                    }
+                  } else if (role === '设备管理员审批') {
+                    if (data.data['device_manager_approval'] === true) {
+                      step.classList.add('step-green');
+                    } else if (data.data['department_leader_approval'] === true && data.data['device_manager_approval'] === null) {
+                      step.classList.add('step-yellow');
+                    }
+                  }
+                });
+
+              }
+
+              // 显示驳回原因
+              const rejectionDiv = document.getElementById('rejectionReasons');
+              if (rejectionDiv) {
+                rejectionDiv.innerHTML = '';
+                const roles = [
+                  {key: 'area_leader', label: '区域主管'},
+                  {key: 'line_leader', label: '条线领导'},
+                  {key: 'device_manager', label: '设备管理员'}
+                ];
+                
+                roles.forEach(role => {
+                  const rejectionReason = data.data[`${role.key}_rejection_reason`];
+                  if (rejectionReason) {
+                    const rejection = document.createElement('div');
+                    rejection.className = 'alert alert-warning';
+                    rejection.innerHTML = `<strong>${role.label}驳回原因：</strong>${rejectionReason}`;
+                    rejectionDiv.appendChild(rejection);
+                  }
+                });
+              }
+
+                } else {
+                  alert(data.message);
+                }
+              });
+            });
+
+            appList.appendChild(appItem);
+          });
+
+          treeView.appendChild(monthNode);
+          treeView.appendChild(appList);
+        }
+      }
+    }
+
+    // 初始化树控件
+    buildTree();
+
+    // 当年份下拉框改变时，重新构建树控件
+    document.getElementById('yearSelect').addEventListener('change', buildTree);
+
+    // 修改显示提示框的代码
+    function setupHintBoxes() {
+      const hintBoxConfigs = {
+        'fault_phenomenon': 'hint-box',
+        'fault_reason': 'hint-box2',
+        'solution': 'hint-box3'
+      };
+
+      Object.entries(hintBoxConfigs).forEach(([inputId, hintBoxId]) => {
+        const input = document.getElementById(inputId);
+        const hintBox = document.getElementById(hintBoxId);
+        
+        if (input && hintBox) {
+          // 添加焦点事件监听器
+          input.addEventListener('focus', () => {
+            hintBox.style.display = 'block';
+          });
+
+          // 添加失焦事件监听器
+          input.addEventListener('blur', (event) => {
+            // 检查新的焦点元素是否是提示框
+            setTimeout(() => {
+              if (!hintBox.contains(document.activeElement)) {
+                hintBox.style.display = 'none';
+              }
+            }, 100);
+          });
+
+          // 为提示框添加点击事件，防止点击提示框时隐藏
+          hintBox.addEventListener('click', (event) => {
+            event.stopPropagation();
+          });
+        }
+      });
+
+      // 点击页面其他地方时隐藏所有提示框
+      document.addEventListener('click', (event) => {
+        const hintBoxes = document.querySelectorAll('[id^="hint-box"]');
+        hintBoxes.forEach(box => {
+          if (!box.contains(event.target) && 
+              !event.target.matches('textarea')) {
+            box.style.display = 'none';
+          }
+        });
+      });
+    }
+
+    // 调用初始化提示框函数
+    setupHintBoxes();
+
+    // 成功提示信息自动消失
+    setTimeout(() => {
+      document.querySelectorAll('.alert-dismissible').forEach(alert => {
+        new bootstrap.Alert(alert).close();
+      });
+    }, 2000);
+
+    // 获取表单和按钮
+    const overtimeForm = document.getElementById('overtimeForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // 监听提交按钮的点击事件
+    submitBtn.addEventListener('click', event => {
+      event.preventDefault();
+      const confirmModal = new bootstrap.Modal(document.getElementById('confirmSubmitModal'));
+      confirmModal.show();
+    });
+
+    // 监听模态框中的确认按钮
+    document.getElementById('confirmSubmitBtn').addEventListener('click', () => {
+      overtimeForm.submit();
+    });
+
+    // 修改删除按钮的处理代码
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        // 获取申请编号
+        const applicationNumber = document.getElementById('application_number').value;
+        if (!applicationNumber) {
+          alert('请先选择要删除的申请');
+          return;
+        }
+
+        // 显示确认删除模态框
+        const confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+        confirmDeleteModal.show();
+      });
+
+      // 修改确认删除按钮的处理代码
+      document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+        const applicationNumber = document.getElementById('application_number').value;
+        
+        // 创建表单数据
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{% url 'equipment:delete_device_repair_application' %}";
+        
+        // 添加 CSRF Token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        form.appendChild(csrfInput);
+
+        // 添加申请编号
+        const appNumInput = document.createElement('input');
+        appNumInput.type = 'hidden';
+        appNumInput.name = 'application_number';
+        appNumInput.value = applicationNumber;
+        form.appendChild(appNumInput);
+
+        // 添加到文档并提交
+        document.body.appendChild(form);
+        form.submit();
+      });
+    }
+
+    // 修改清空按钮的处理代码
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        // 重置表单
+        overtimeForm.reset();
+
+        // 清空特定字段
+        const fieldsToReset = [
+          'application_number',
+          'device_name',
+          'fault_phenomenon',
+          'fault_level',
+          'fault_locations',
+          'fault_reason',
+          'solution',
+          'end_time',
+          'duration'
+        ];
+
+        fieldsToReset.forEach(fieldId => {
+          const element = document.getElementById(fieldId);
+          if (element) { // 添加判断，确保元素存在
+            if (element.tagName.toLowerCase() === 'select') {
+              element.selectedIndex = 0;
+            } else {
+              element.value = '';
+            }
+          }
+        });
+
+        // 清空驳回原因区域
+        const rejectionDiv = document.getElementById('rejectionReasons');
+        if (rejectionDiv) {
+          rejectionDiv.innerHTML = '';
+        }
+
+        // 重置审批流程图的状态
+        const flowSteps = document.querySelectorAll('.flow-step');
+        if (flowSteps) {
+          flowSteps.forEach(step => {
+            step.classList.remove('step-yellow', 'step-green');
+          });
+        }
+      });
+    }
+
+    // 显示或隐藏驳回原因输入框
+    ['area_leader', 'device_repairer', 'line_leader', 'department_leader', 'device_manager'].forEach(role => {
+      const rejectRadio = document.getElementById(`${role}_Reject`);
+      const agreeRadio = document.getElementById(`${role}_Agree`);
+      const rejectionReasonDiv = document.getElementById(`${role}_RejectionReasonDiv`);
+
+      if (rejectRadio) {
+        rejectRadio.addEventListener('change', () => {
+          rejectionReasonDiv.style.display = 'block';
+        });
+      }
+      if (agreeRadio) {
+        agreeRadio.addEventListener('change', () => {
+          rejectionReasonDiv.style.display = 'none';
+        });
+      }
+      window.addEventListener('load', () => {
+        if (rejectRadio && rejectRadio.checked) {
+          rejectionReasonDiv.style.display = 'block';
+        }
+      });
+    });
+
+  })();
+</script>
+{% endblock %}

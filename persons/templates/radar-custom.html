@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="height: 100%; margin: 0">
+  <div id="radar-container" style="height: 100%"></div> <!-- 修改ID为 radar-container -->
+
+  <script type="text/javascript" src="https://registry.npmmirror.com/echarts/5.5.1/files/dist/echarts.min.js"></script>
+
+  <script type="text/javascript">
+    function updateRadarChart(professional_content, professionalValues, professional_values_max, testAbilityValues, test_ability_values_max) {
+        var radarChart = echarts.init(document.getElementById('radar-container'));
+
+        var option = {
+            color: ['#67F9D8', '#FFE434', '#56A3F1', '#FF917C'],
+            title: {
+                text: '人员能力图'
+            },
+            legend: {},
+            radar: [
+                {
+                    indicator: [
+                        { text: '认真负责' },
+                        { text: '响应及时' },
+                        { text: '归纳总结' },
+                        { text: '问题分析' },
+                        { text: '积极主动' }
+                    ],
+                    center: ['25%', '50%'],
+                    radius: 120,
+                    startAngle: 90,
+                    splitNumber: 4,
+                    shape: 'circle',
+                    axisName: {
+                        formatter: '【{value}】',
+                        color: '#428BD4'
+                    },
+                    splitArea: {
+                        areaStyle: {
+                            color: ['#77EADF', '#26C3BE', '#64AFE9', '#428BD4'],
+                            shadowColor: 'rgba(0, 0, 0, 0.2)',
+                            shadowBlur: 10
+                        }
+                    },
+                    axisLine: {
+                        lineStyle: {
+                            color: 'rgba(211, 253, 250, 0.8)'
+                        }
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: 'rgba(211, 253, 250, 0.8)'
+                        }
+                    }
+                },
+                {
+                    {#indicator: [#}
+                    {#    { text: '齿轴耐久', max: 120 },#}
+                    {#    { text: '换档耐久', max: 120 },#}
+                    {#    { text: 'HCU', max: 120 },#}
+                    {#    { text: '零部件', max: 120 },#}
+                    {#    { text: '控制器', max: 120 },#}
+                    {#    { text: '静扭/驻车', max: 120 }#}
+                    indicator: [
+                        { text: professional_content[0], max: 120 },
+                        { text: professional_content[1], max: 120 },
+                        { text: professional_content[2], max: 120 },
+                        { text: professional_content[3], max: 120 },
+                        { text: professional_content[4], max: 120 },
+                        { text: professional_content[5], max: 120 }
+                    ],
+                    center: ['75%', '50%'],
+                    radius: 120,
+                    axisName: {
+                        color: '#fff',
+                        backgroundColor: '#666',
+                        borderRadius: 3,
+                        padding: [3, 5]
+                    }
+                }
+            ],
+            series: [
+                {
+                    type: 'radar',
+                    emphasis: {
+                        lineStyle: {
+                            width: 4
+                        }
+                    },
+                    data: [
+                        {
+                            value: professional_values_max,  // 这些是示例最大值，不需要动态更新
+                            name: '职业素养——最大'
+                        },
+                        {
+                            value: professionalValues,  // 这里动态更新 "职业素养——人员" 的值
+                            name: '职业素养——人员',
+                            areaStyle: {
+                                color: 'rgba(255, 228, 52, 0.6)'
+                            }
+                        }
+                    ]
+                },
+                {
+                    type: 'radar',
+                    radarIndex: 1,
+                    data: [
+                        {
+                            value: test_ability_values_max,  // 这些是示例最大值，不需要动态更新
+                            name: '试验能力——最大',
+                            symbol: 'rect',
+                            symbolSize: 12,
+                            lineStyle: {
+                                type: 'dashed'
+                            },
+                            label: {
+                                show: true,
+                                formatter: function (params) {
+                                    return params.value;
+                                }
+                            }
+                        },
+                        {
+                            value: testAbilityValues,  // 这里动态更新 "试验能力——成员" 的值
+                            name: '试验能力——成员',
+                            areaStyle: {
+                                color: new echarts.graphic.RadialGradient(0.1, 0.6, 1, [
+                                    {
+                                        color: 'rgba(255, 145, 124, 0.1)',
+                                        offset: 0
+                                    },
+                                    {
+                                        color: 'rgba(255, 145, 124, 0.9)',
+                                        offset: 1
+                                    }
+                                ])
+                            }
+                        }
+                    ]
+                }
+            ]
+        };
+
+        radarChart.setOption(option);
+    }
+
+    // 添加事件监听器，在窗口大小变化时调整图表大小
+    window.addEventListener('resize', function() {
+        radarChart.resize();
+    });
+
+    // 确保在页面加载时调整图表大小
+    document.addEventListener('DOMContentLoaded', function() {
+        radarChart.resize();
+    });
+  </script>
+</body>
+</html>

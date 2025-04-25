@@ -1,0 +1,767 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/ban4.png' %});">
+        <div class="container position-relative">
+            <h1>{{ page_title }}</h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a href="/">首页</a></li>
+                    <li class="current"><a href="{% url 'experiment:experiment_tasks_day' %}">试验管理 / </a>{{ page_title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div><!-- End Page Title -->
+
+    <!-- Starter Section Section -->
+    <section id="starter-section" class="starter-section section">
+        <div class="container" data-aos="fade-up">
+             <!-- 控件卡片 -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap align-items-center">
+                        {% if user_has_permission %}
+                            <button id="add-row" class="btn btn-primary me-3 mb-2">新增任务</button>
+                        {% endif %}
+                        <input type="date" id="filter-date" class="form-control me-3 mb-2" style="max-width: 180px;">
+                        <div class="form-check form-check-inline me-3 mb-2">
+                            <input class="form-check-input" type="radio" name="date-range" id="this-week" value="week">
+                            <label class="form-check-label" for="this-week">查看本周</label>
+                        </div>
+                        <div class="form-check form-check-inline me-3 mb-2">
+                            <input class="form-check-input" type="radio" name="date-range" id="this-month" value="month">
+                            <label class="form-check-label" for="this-month">查看本月</label>
+                        </div>
+                        <div class="form-check form-check-inline me-3 mb-2">
+                            <input class="form-check-input" type="radio" name="date-range" id="this-year" value="year">
+                            <label class="form-check-label" for="this-year">查看本年</label>
+                        </div>
+                        <input type="text" id="search-input" class="form-control mb-2" placeholder="搜索..." style="max-width: 200px;">
+                    </div>
+                </div>
+            </div>
+             <!-- 表格 -->
+            <div class="card">
+                <table id="task-table" class="table table-bordered table-striped mb-0" style="width: 100%;"> <!-- 设置表格宽度为100% -->
+                    <thead style="position: sticky; top: 0; background: white; z-index: 1;"> <!-- 固定表头 -->
+                        <tr>
+                            <th style="text-align: center;width: 3%;">序号</th>
+                            <th style="text-align: center;width: 5%;">任务单号</th>
+                            <th style="text-align: center;width: 6%;">任务状态</th>
+                            <th style="text-align: center;width: 6%;">项目代号</th>
+                            <th style="text-align: center;width: 10%;">样品编号</th>
+                            <th style="text-align: center;width: 8%;">试验内容</th>
+                            <th style="text-align: center;width: 12%;">试验大纲</th>
+                            <th style="text-align: center;width: 7%;">设备编号</th>
+                            <th style="text-align: center;width: 6%;">任务日期</th>
+                            <th style="text-align: center;width: 5%;">委托人</th>
+                            <th style="text-align: center;width: 5%;">试验人员</th> <!-- 始终不可编辑 -->
+                            <th style="text-align: center;width: 3%;">进度</th> <!-- 始终不可编辑 -->
+                            <th style="text-align: center;width: 12%;">备注</th>
+                            {% if user_has_permission %}
+                            <th style="text-align: center;width: 7%;">操作</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ task.task_id }}</td>
+                            <td>
+                                {{ task.task_status }}
+                            </td>
+                            <td>{{ task.project }}</td>
+                            <td>{{ task.sample_id }}</td>
+                            <td>{{ task.test_content }}</td>
+                            <td>
+                                {{ task.outline }}
+                            </td>
+                            <td>{{ task.equipment_id }}</td>
+                            <td>{{ task.task_date|date:"Y-m-d" }}</td>
+                            <td>{{ task.client }}</td>
+                            <td>{{ task.experimenter }}</td> <!-- 始终不可编辑 -->
+                            <td>{{ task.schedule }}</td> <!-- 始终不可编辑 -->
+                            <td>{{ task.remark }}</td>
+
+                            {% if user_has_permission %}
+                            <td>
+                                <button class="btn btn-sm btn-info edit-btn">编辑</button>
+                                <button class="btn btn-sm btn-danger delete-btn">删除</button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- 任务选择模态窗口 -->
+<div class="modal fade" id="taskSelectionModal" tabindex="-1" aria-labelledby="taskSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary">
+                <h5 class="modal-title text-white" id="taskSelectionModalLabel">📋 选择任务委托单</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="input-group" style="width: 33%;">
+                        <span class="input-group-text">🔍</span>
+                        <input type="text" id="task-search-input" class="form-control" placeholder="输入任务单号或项目代号搜索...">
+                        <button class="btn btn-primary" id="task-search-btn">搜索</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="task-application-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%">任务单号</th>
+                                <th style="width: 15%">项目代号</th>
+                                <th style="width: 15%">样品编号</th>
+                                <th style="width: 25%">试验内容</th>
+                                <th style="width: 20%">试验大纲</th>
+                                <th style="width: 10%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 搜索结果将在这里显示 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if error_message %}
+<script>
+    alert("{{ error_message }}");
+</script>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM fully loaded and parsed');
+
+         // 获取当前日期
+        const today = new Date();
+
+    // 设置日期筛选控件的默认值为当前日期
+    document.getElementById('filter-date').value = today.toISOString().split('T')[0];
+
+    // 日期筛选功能
+    function filterByDate() {
+        let selectedDate = document.getElementById('filter-date').value;
+        let rows = document.querySelectorAll('#task-table tbody tr');
+        rows.forEach(row => {
+            let taskDateStr = row.cells[8].innerText.trim();
+            let taskDate = new Date(taskDateStr);  // 转换任务日期为 Date 对象
+
+            if (taskDate.toISOString().split('T')[0] === selectedDate || !selectedDate) {
+                row.style.display = '';  // 显示符合条件的行
+            } else {
+                row.style.display = 'none';  // 隐藏不符合条件的行
+            }
+        });
+    }
+
+    // 获取本周、本月、本年的起始日期
+    function getStartOfPeriod(period) {
+        const date = new Date();  // 获取当前日期对象
+        switch (period) {
+            case 'week':
+                const day = date.getDay();
+                const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+                return new Date(date.setDate(diff));  // 返回本周的起始日期对象
+            case 'month':
+                return new Date(date.getFullYear(), date.getMonth(), 1);  // 返回本月的起始日期对象
+            case 'year':
+                return new Date(date.getFullYear(), 0, 1);  // 返回今年的起始日期对象
+            default:
+                return today;  // 默认为今天
+        }
+    }
+
+    // 通过单选按钮筛选数据
+    function filterByPeriod(period) {
+        let startDate = getStartOfPeriod(period);  // 获取时间段的起始日期
+
+        console.log(`Filtering data from ${startDate.toISOString().split('T')[0]} to ${today.toISOString().split('T')[0]}`);
+
+        let rows = document.querySelectorAll('#task-table tbody tr');
+        rows.forEach(row => {
+            let taskDateStr = row.cells[8].innerText.trim();
+            let taskDate = new Date(taskDateStr);  // 将任务日期转换为 Date 对象
+
+            // 只比较日期的 YYYY-MM-DD 部分，忽略时间部分
+            let taskDateOnly = taskDate.toISOString().split('T')[0];  // 只取 YYYY-MM-DD 部分
+            let startDateOnly = startDate.toISOString().split('T')[0];  // 只取 YYYY-MM-DD 部分
+            let todayOnly = today.toISOString().split('T')[0];  // 只取 YYYY-MM-DD 部分
+
+            // 比较任务日期是否在时间段内，忽略时间部分
+            if (taskDateOnly >= startDateOnly && taskDateOnly <= todayOnly) {
+                row.style.display = '';  // 显示符合条件的行
+            } else {
+                row.style.display = 'none';  // 隐藏不符合条件的行
+            }
+        });
+    }
+
+    // 监听日期更改事件
+    document.getElementById('filter-date').addEventListener('change', filterByDate);
+
+    // 监听单选按钮事件
+    document.querySelectorAll('input[name="date-range"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            filterByPeriod(this.value);
+            console.log(this.value);
+        });
+    });
+
+    // 初次加载时根据当前日期过滤表格数据
+    filterByDate();
+
+        // 数据格式验证函数
+        function validateData(data) {
+            const errors = [];
+
+            // 任务单号验证
+            if (!/^\d{8}-\d{2}$/.test(data.task_id)) {
+                errors.push('任务单号格式不对，正确格式如：20240813-01');
+            }
+
+            // 日期格式验证
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(data.task_date)) {
+                errors.push('任务日期格式必须为 "YYYY-MM-DD"');
+            }
+
+            return errors;
+        }
+
+        // 表单内容验证函数
+        function validateFormFields(data) {
+            const requiredFields = [
+                { field: data.project, name: "项目代号" },
+                { field: data.sample_id, name: "样品编号" },
+                { field: data.test_content, name: "试验内容" },
+                { field: data.outline, name: "试验大纲" },
+                { field: data.equipment_id, name: "设备编号" },
+                { field: data.client, name: "委托人" }
+            ];
+
+            const errors = [];
+            requiredFields.forEach(item => {
+                if (!item.field || item.field.trim() === '') {
+                    errors.push(`${item.name}不能为空`);
+                }
+            });
+
+            if (errors.length > 0) {
+                alert(errors.join('\n'));
+                return false;
+            }
+
+            return true;
+        }
+
+        // 搜索功能
+        document.getElementById('search-input').addEventListener('keyup', function () {
+            let searchValue = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#task-table tbody tr');
+            rows.forEach(row => {
+                let cells = Array.from(row.cells).map(cell => cell.innerText.toLowerCase());
+                let match = cells.some(cellText => cellText.includes(searchValue));
+                row.style.display = match ? '' : 'none';
+            });
+        });
+
+        // 任务申请搜索相关功能
+        function searchTaskApplications(query = '') {
+            fetch(`/api/search-task-applications/?query=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.querySelector('#task-application-table tbody');
+                    tableBody.innerHTML = '';
+                    
+                    if (data.tasks && data.tasks.length > 0) {
+                        data.tasks.forEach(task => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td style="white-space: nowrap;">${task.task_number || ''}</td>
+                                <td style="white-space: nowrap;">${task.project_code || ''}</td>
+                                <td style="white-space: nowrap;">${task.sample_code || ''}</td>
+                                <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${task.test_content || ''}</td>
+                                <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${task.test_specs || ''}</td>
+                                <td style="text-align: center;">
+                                    <button class="btn btn-primary btn-sm select-task-btn">选择</button>
+                                </td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    } else {
+                        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">未找到匹配的任务</td></tr>';
+                    }
+                })
+                .catch(error => {
+                    console.error('搜索任务失败:', error);
+                    alert('搜索任务失败，请重试');
+                });
+        }
+
+        // 搜索按钮点击事件
+        document.getElementById('task-search-btn').addEventListener('click', function() {
+            const query = document.getElementById('task-search-input').value.trim();
+            searchTaskApplications(query);
+        });
+
+        // 回车键触发搜索
+        document.getElementById('task-search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const query = this.value.trim();
+                searchTaskApplications(query);
+            }
+        });
+
+        // 委托单选择事件委托（使用事件委托处理动态添加的按钮）
+        document.getElementById('task-application-table').addEventListener('click', function(e) {
+            if (e.target.classList.contains('select-task-btn')) {
+                const row = e.target.closest('tr');
+                const taskNumber = row.cells[0].textContent;
+                const projectCode = row.cells[1].textContent;
+                const sampleCode = row.cells[2].textContent;
+                const testContent = row.cells[3].textContent;
+                const testSpecs = row.cells[4].textContent;
+                
+                // 关闭模态窗口
+                const modal = bootstrap.Modal.getInstance(document.getElementById('taskSelectionModal'));
+                modal.hide();
+                
+                // 在主表格中创建新行并填充数据
+                createNewTaskRowFromApplication(taskNumber, projectCode, sampleCode, testContent, testSpecs);
+            }
+        });
+
+        // 根据任务申请创建新行
+        function createNewTaskRowFromApplication(taskNumber, projectCode, sampleCode, testContent, testSpecs) {
+            let table = document.getElementById('task-table').getElementsByTagName('tbody')[0];
+            let newRow = table.insertRow();
+            
+            // 获取今天的日期格式为YYYY-MM-DD
+            const today = new Date().toISOString().split('T')[0];
+            
+            newRow.innerHTML = `
+                <td contenteditable="true"></td>     <!-- 0 序号 -->
+                <td contenteditable="true">${taskNumber}</td>     <!-- 1 任务单号 -->
+                <td>
+                    <select class="table-select">
+                        <option value="待安排" selected>待安排</option>
+                        <option value="样件装调">样件装调</option>
+                        <option value="样件运行">样件运行</option>
+                        <option value="样件排查">样件排查</option>
+                        <option value="设备排查">设备排查</option>
+                        <option value="任务暂停">任务暂停</option>
+                        <option value="已完成">已完成</option>
+                    </select>
+                </td> <!-- 2 任务状态 -->
+                <td contenteditable="true" class="project-code">${projectCode}</td>     <!-- 3 项目代号 -->
+                <td contenteditable="true">${sampleCode}</td>     <!-- 4 样品编号 -->
+                <td contenteditable="true">${testContent}</td>     <!-- 5 试验内容 -->
+                <td>
+                    <select class="outline-select">
+                        <option value="${testSpecs}" selected>${testSpecs}</option>
+                    </select>
+                </td>     <!-- 6 试验大纲 -->
+                <td contenteditable="true"></td>     <!-- 7 设备编号 -->
+                <td><input type="date" class="table-select" value="${today}"></td>  <!-- 8 任务日期 -->
+                <td contenteditable="true"></td>     <!-- 9 委托人 -->
+                <td contenteditable="false"></td>    <!-- 10 试验人员 -->
+                <td contenteditable="false"></td>    <!-- 11 进度 -->
+                <td contenteditable="true"></td>     <!-- 12 备注 -->
+                <td>
+                    <button class="btn btn-sm btn-success save-btn">保存</button>
+                    <button class="btn btn-sm btn-secondary cancel-btn">取消</button>
+                </td>`;
+            
+            // 更新序号
+            updateRowNumbers();
+            
+            // 获取项目代号单元格和试验大纲下拉框
+            let projectCodeCell = newRow.querySelector('.project-code');
+            let outlineSelect = newRow.querySelector('.outline-select');
+
+            // 为项目代号添加blur事件，以便在修改时更新试验大纲选项
+            projectCodeCell.addEventListener('blur', function () {
+                let projectCode = projectCodeCell.innerText.trim();
+                if (projectCode) {
+                    fetch(`/get_outlines/${projectCode}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            outlineSelect.innerHTML = '<option value="">无大纲</option>';
+                            data.outlines.forEach(outline => {
+                                let optionText = `${outline.outline_num}/${outline.outline_name}`;
+                                let selected = optionText === testSpecs ? 'selected' : '';
+                                outlineSelect.innerHTML += `<option value="${optionText}" ${selected}>${optionText}</option>`;
+                            });
+                        })
+                        .catch(error => {
+                            console.error('获取试验大纲失败:', error);
+                        });
+                } else {
+                    outlineSelect.innerHTML = '<option value="">无大纲</option>';
+                }
+            });
+        }
+
+        // 更新所有行的序号
+        function updateRowNumbers() {
+            let rows = document.querySelectorAll('#task-table tbody tr');
+            rows.forEach((row, index) => {
+                row.cells[0].textContent = index + 1;
+            });
+        }
+
+        // 修改添加行按钮的点击事件
+        document.getElementById('add-row').addEventListener('click', function () {
+            // 打开模态窗口
+            const modal = new bootstrap.Modal(document.getElementById('taskSelectionModal'));
+            modal.show();
+            
+            // 初始加载任务列表
+            searchTaskApplications();
+        });
+
+        // 编辑、保存、删除、取消行
+        document.getElementById('task-table').addEventListener('click', function (event) {
+            let target = event.target;
+
+            if (target.classList.contains('edit-btn')) {
+                let row = target.closest('tr');
+                row.querySelectorAll('td').forEach((cell, index) => {
+                    if (index !== 0 && index !== 10 && index !== 11 && index !== 13) { // Skip the first cell, '试验人员', '进度', and action buttons
+                        if (index === 2) { // 任务状态列
+                            let currentValue = cell.textContent.trim();
+                            cell.innerHTML = `<select class="table-select">
+                                <option value="待安排" ${currentValue === "待安排" ? "selected" : ""}>待安排</option>
+                                <option value="样件装调" ${currentValue === "样件装调" ? "selected" : ""}>样件装调</option>
+                                <option value="样件运行" ${currentValue === "样件运行" ? "selected" : ""}>样件运行</option>
+                                <option value="样件排查" ${currentValue === "样件排查" ? "selected" : ""}>样件排查</option>
+                                <option value="设备排查" ${currentValue === "设备排查" ? "selected" : ""}>设备排查</option>
+                                <option value="任务暂停" ${currentValue === "任务暂停" ? "selected" : ""}>任务暂停</option>
+                                <option value="已完成" ${currentValue === "已完成" ? "selected" : ""}>已完成</option>
+                            </select>`;
+                        } else if (index === 6) { // 试验大纲列
+                            let currentProjectCodeCell = row.cells[3];
+                            let currentProjectCode = currentProjectCodeCell.textContent.trim();
+                            let currentOutline = cell.textContent.trim(); // 获取当前显示的试验大纲
+                            const updateOutlineOptions = () => {
+                                if (currentProjectCode) {
+                                    fetch(`/get_outlines/${currentProjectCode}/`)
+                                        .then(response => {
+                                            if (!response.ok) {
+                                                throw new Error('Network response was not ok');
+                                            }
+                                            return response.json();
+                                        })
+                                        .then(data => {
+                                            let outlineSelect = document.createElement('select');
+                                            outlineSelect.classList.add('outline-select');
+                                            outlineSelect.innerHTML = '<option value="">无大纲</option>';
+                                            data.outlines.forEach(outline => {
+                                                let optionText = `${outline.outline_num}/${outline.outline_name}`;
+                                                let selected = optionText === currentOutline ? 'selected' : '';
+                                                outlineSelect.innerHTML += `<option value="${optionText}" ${selected}>${optionText}</option>`;
+                                            });
+                                            cell.innerHTML = '';
+                                            cell.appendChild(outlineSelect);
+                                        })
+                                        .catch(error => {
+                                            console.error('Fetch error:', error);
+                                        });
+                                } else {
+                                    console.error('项目代号为空，无法获取试验大纲数据。');
+                                }
+                            };
+                            updateOutlineOptions();
+
+                            // 添加项目代号更改事件监听器
+                            currentProjectCodeCell.addEventListener('input', function () {
+                                currentProjectCode = currentProjectCodeCell.textContent.trim();
+                                updateOutlineOptions();
+                            });
+                        } else {
+                            cell.contentEditable = true;
+                        }
+                    }
+                });
+                let taskDateCell = row.cells[8];
+                let dateValue = taskDateCell.textContent.trim();
+                taskDateCell.innerHTML = `<input type="date" class="table-select" value="${dateValue}">`; // Convert date cell to input field
+                target.textContent = '保存';
+                target.classList.remove('edit-btn');
+                target.classList.add('save-btn');
+            } else if (target.classList.contains('save-btn')) {
+                let row = target.closest('tr');
+                let outlineSelect = row.cells[6].querySelector('select');
+                let outlineText = outlineSelect ? outlineSelect.options[outlineSelect.selectedIndex].text.trim() : row.cells[6].innerText.trim();  // 获取完整的选定值
+
+                let data = {
+                    task_id: row.cells[1].innerText.trim(),
+                    task_status: row.cells[2].querySelector('select').value.trim(),
+                    project: row.cells[3].innerText.trim(),
+                    sample_id: row.cells[4].innerText.trim(),
+                    test_content: row.cells[5].innerText.trim(),
+                    outline: outlineText,  // 保存完整的试验大纲内容
+                    equipment_id: row.cells[7].innerText.trim(),
+                    task_date: row.cells[8].querySelector('input').value.trim(),  // 从输入框获取任务日期
+                    client: row.cells[9].innerText.trim(),
+                    experimenter: row.cells[10].innerText.trim(),  // 试验人员保持原样
+                    schedule: row.cells[11].innerText.trim(),  // 进度保持原样
+                    remark: row.cells[12].innerText.trim()
+                };
+
+                // 验证表单字段内容是否为空
+                if (!validateFormFields(data)) {
+                    return;  // 如果验证失败，取消保存操作
+                }
+
+                console.log('Validating data:', data);
+
+                // 验证数据格式
+                const errors = validateData(data);
+                if (errors.length > 0) {
+                    alert('保存失败:\n' + errors.join('\n'));
+                    return;
+                }
+
+                // 如果验证通过，执行保存操作
+                $.ajax({
+                    url: "{% url 'experiment:save_task' %}",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        console.log('保存成功', response);
+                        row.querySelectorAll('td').forEach((cell, index) => {
+                            if (index !== 0 && index !== 10 && index !== 11 && index !== 13) { // Skip the first cell, '试验人员', '进度', and action buttons
+                                cell.contentEditable = false;
+                            }
+                        });
+                        let taskDateCell = row.cells[8];
+                        let dateValue = taskDateCell.querySelector('input').value;
+                        taskDateCell.innerHTML = dateValue; // Convert input field back to text
+                        // 将任务状态从下拉框还原为文本
+                        let taskStatusCell = row.cells[2];
+                        let taskStatusValue = taskStatusCell.querySelector('select').value;
+                        taskStatusCell.innerHTML = taskStatusValue; // 将下拉框值转换为文本
+                        // 将试验大纲从下拉框还原为文本
+                        let outlineCell = row.cells[6];
+                        outlineCell.innerHTML = outlineText; // 使用完整的试验大纲文本更新单元格
+                        target.textContent = '编辑';
+                        target.classList.remove('save-btn');
+                        target.classList.add('edit-btn');
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('保存失败', status, error);
+                        console.log(xhr.responseText);
+                        alert('保存失败');
+                    }
+                });
+            } else if (target.classList.contains('delete-btn')) {
+                let row = target.closest('tr');
+                let task_id = row.cells[1].innerText.trim(); // 确保是任务单号
+
+                if (confirm('你确定要删除此任务吗？')) {
+                    $.ajax({
+                        url: "{% url 'experiment:delete_task' %}",
+                        method: "POST",
+                        data: {
+                            task_id: task_id, // 使用正确的字段名
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        success: function (response) {
+                            console.log('删除成功', response);
+                            row.remove();
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('删除失败', status, error);
+                            alert('删除失败');
+                        }
+                    });
+                }
+            } else if (target.classList.contains('cancel-btn')) {
+                let row = target.closest('tr');
+                row.remove();
+                console.log('New row canceled');
+            }
+        });
+    });
+</script>
+
+<style>
+    .container[data-aos="fade-up"] {
+        max-width: 1800px;
+    }
+
+    #task-table thead {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 1;
+    }
+
+    .starter-section input#search-input {
+        max-width: 300px;
+    }
+
+    .edit-btn, .save-btn, .delete-btn, .cancel-btn {
+        margin: 0 2px;
+    }
+
+    .table-select {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        background-color: transparent;
+        font-size: inherit;
+        line-height: inherit;
+        font-family: inherit;
+        text-align-last: center;
+        box-sizing: border-box;
+    }
+
+    .outline-select {
+        width: 100%;
+        padding: 0;
+        border: none;
+        background-color: transparent;
+        font-size: inherit;
+        line-height: inherit;
+        font-family: inherit;
+        text-align-last: center;
+        box-sizing: border-box;
+    }
+
+    #filter-date {
+    max-width: 200px;
+    margin-left: 10px;
+    }
+
+    .d-flex.flex-wrap {
+        gap: 10px;
+    }
+
+    .form-check-inline {
+        margin-right: 10px;
+    }
+
+    #filter-date {
+        max-width: 200px;
+    }
+
+    /* 任务选择模态窗口样式 */
+    #taskSelectionModal .modal-content {
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    #taskSelectionModal .modal-header {
+        border-radius: 8px 8px 0 0;
+        padding: 15px 20px;
+    }
+
+    #taskSelectionModal .modal-body {
+        padding: 20px;
+    }
+
+    #taskSelectionModal .modal-title {
+        color: white;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    #taskSelectionModal .input-group {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+        margin-bottom: 15px;
+        /* 宽度在HTML内联样式中设置 */
+    }
+
+    #task-search-input {
+        padding: 8px 12px;
+        font-size: 14px;
+        height: 40px;
+    }
+
+    #task-search-btn {
+        padding: 0 20px;
+        font-weight: 500;
+    }
+
+    #task-application-table {
+        width: 100%;
+        margin-top: 10px;
+        border: 1px solid #dee2e6;
+    }
+
+    #task-application-table thead th {
+        background-color: #f8f9fa;
+        padding: 12px 15px;
+        font-weight: 600;
+        text-align: center;
+        vertical-align: middle;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    #task-application-table td {
+        padding: 10px 15px;
+        vertical-align: middle;
+        border-bottom: 1px solid #eee;
+        max-width: 250px;
+    }
+
+    #task-application-table tbody tr:hover {
+        background-color: #f0f7ff;
+    }
+
+    .select-task-btn {
+        border-radius: 4px;
+        font-weight: 500;
+        padding: 4px 12px;
+        transition: all 0.2s ease;
+        margin: 0 auto;
+    }
+
+    .select-task-btn:hover {
+        background-color: #0056b3;
+    }
+
+    #taskSelectionModal .modal-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #eee;
+    }
+    
+    /* 确保表格显示在视图中 */
+    .table-responsive {
+        overflow-x: auto;
+        max-height: 60vh;
+    }
+</style>
+
+{% endblock %}

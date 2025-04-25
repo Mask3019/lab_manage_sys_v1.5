@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="main">
+    <div class="page-title dark-background" style="background-image: url({% static 'images/offices_banner.png' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href="{% url 'persons:persons_list' %}">人员管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+
+    <section id="personnel-list-section" class="personnel-list-section section">
+      <div class="container" data-aos="fade-up" style="max-width: 1800px;"> <!-- 设置容器的最大宽度 -->
+        <div class="d-flex justify-content-between mb-3">
+          {% if user_has_permission %}
+            <button id="add-row" class="btn btn-primary">新增行</button>
+          {% endif %}
+          <input type="text" id="search-input" class="form-control" placeholder="搜索..." style="max-width: 300px;">
+        </div>
+        <div class="card" style="max-height: 500px; overflow-y: auto; position: relative;"> <!-- 使用卡片和滚动条 -->
+          <table id="person-table" class="table table-bordered table-striped mb-0" style="width: 100%;"> <!-- 设置表格宽度为100% -->
+            <thead style="position: sticky; top: 0; background: white; z-index: 1;"> <!-- 固定表头 -->
+              <tr>
+                <th style="text-align: center;">工号</th>
+                <th style="text-align: center;">姓名</th>
+                <th style="text-align: center;">邮箱</th>
+                <th style="text-align: center;">手机号</th>
+                <th style="text-align: center;">出生日期</th>
+                <th style="text-align: center;">地址</th>
+                <th style="text-align: center;">入职时间</th>
+                <th style="text-align: center;">部门</th>
+                <th style="text-align: center;">岗位</th>
+                <th style="text-align: center; width: 100px;">等级</th> <!-- 新增字段 -->
+                <th style="text-align: center; width: 300px;">擅长领域</th> <!-- 新增字段 -->
+                <th style="text-align: center; width: 100px;">头像</th>
+                {% if user_has_permission %}
+                  <th style="text-align: center;">操作</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for person in persons %}
+              <tr>
+                <td>{{ person.employee_id }}</td>
+                <td>{{ person.name }}</td>
+                <td>{{ person.email }}</td>
+                <td>{{ person.phone }}</td>
+                <td>{{ person.birth_date }}</td>
+                <td>{{ person.address }}</td>
+                <td>{{ person.entry_date }}</td>
+                <td>{{ person.department }}</td>
+                <td>{{ person.role }}</td>
+                <td>{{ person.grade }}</td> <!-- 新增字段 -->
+                <td>{{ person.expertise }}</td> <!-- 新增字段 -->
+                <td>{{ person.photo }}</td>
+                {% if user_has_permission %}
+                <td>
+                  <button class="btn btn-sm btn-info edit-btn">编辑</button>
+                  <button class="btn btn-sm btn-danger delete-btn">删除</button>
+                </td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+</main>
+
+{% if error_message %}
+<script>
+    alert("{{ error_message }}");
+</script>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM fully loaded and parsed');
+
+        // 日期格式转换函数
+        function convertToStandardDateFormat(dateStr) {
+            const parts = dateStr.match(/(\d+)年(\d+)月(\d+)日/);
+            if (parts) {
+                const year = parts[1];
+                const month = parts[2].padStart(2, '0');
+                const day = parts[3].padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+            return dateStr;
+        }
+
+        // 页面加载时格式化日期
+        document.querySelectorAll('#person-table tbody tr').forEach(row => {
+            const birthDateCell = row.cells[4];
+            const entryDateCell = row.cells[6];
+            birthDateCell.innerText = convertToStandardDateFormat(birthDateCell.innerText);
+            entryDateCell.innerText = convertToStandardDateFormat(entryDateCell.innerText);
+        });
+
+        // 数据格式验证函数
+        function validateData(data) {
+            const errors = [];
+
+            // 工号验证
+            if (!/^S\d{6}$/.test(data.employee_id)) {
+                errors.push('工号必须以S开头，且后面跟6位数字');
+            }
+
+            // 手机号验证
+            if (!/^1[3-9]\d{9}$/.test(data.phone)) {
+                errors.push('手机号格式不正确');
+            }
+
+            // 日期格式验证
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(data.birth_date)) {
+                errors.push('出生日期格式必须为 "YYYY-MM-DD"');
+            }
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(data.entry_date)) {
+                errors.push('入职时间格式必须为 "YYYY-MM-DD"');
+            }
+
+            return errors;
+        }
+
+        // 搜索功能
+        document.getElementById('search-input').addEventListener('keyup', function () {
+            let searchValue = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#person-table tbody tr');
+            rows.forEach(row => {
+                let cells = Array.from(row.cells).map(cell => cell.innerText.toLowerCase());
+                let match = cells.some(cellText => cellText.includes(searchValue));
+                row.style.display = match ? '' : 'none';
+            });
+        });
+
+        // 添加行
+        document.getElementById('add-row').addEventListener('click', function () {
+            let table = document.getElementById('person-table').getElementsByTagName('tbody')[0];
+            let newRow = table.insertRow();
+            newRow.innerHTML = `
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td> <!-- 新增字段 -->
+                <td contenteditable="true"></td> <!-- 新增字段 -->
+                <td contenteditable="true"></td>
+                <td>
+                    <button class="btn btn-sm btn-success save-btn">保存</button>
+                    <button class="btn btn-sm btn-danger delete-btn">删除</button>
+                </td>`;
+            console.log('New row added');
+        });
+
+        // 编辑和删除行
+        document.getElementById('person-table').addEventListener('click', function (event) {
+            let target = event.target;
+            console.log('Clicked button:', target);
+            if (target.classList.contains('edit-btn')) {
+                let row = target.closest('tr');
+                row.setAttribute('contenteditable', 'true');
+                target.textContent = '保存';
+                target.classList.remove('edit-btn');
+                target.classList.add('save-btn');
+            } else if (target.classList.contains('delete-btn')) {
+                let row = target.closest('tr');
+                let employee_id = row.cells[0].innerText;
+                console.log('Deleting employee_id:', employee_id);
+                $.ajax({
+                    url: "{% url 'persons:delete_person' %}",
+                    method: "POST",
+                    data: {
+                        employee_id: employee_id,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        console.log('删除成功', response);
+                        row.remove();
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('删除失败', status, error);
+                        alert('删除失败');
+                    }
+                });
+            } else if (target.classList.contains('save-btn')) {
+                let row = target.closest('tr');
+                let data = {
+                    employee_id: row.cells[0].innerText.trim(),
+                    name: row.cells[1].innerText.trim(),
+                    email: row.cells[2].innerText.trim(),
+                    phone: row.cells[3].innerText.trim(),
+                    birth_date: row.cells[4].innerText.trim(),
+                    address: row.cells[5].innerText.trim(),
+                    entry_date: row.cells[6].innerText.trim(),
+                    department: row.cells[7].innerText.trim(),
+                    role: row.cells[8].innerText.trim(),
+                    grade: row.cells[9].innerText.trim(), <!-- 新增字段 -->
+                    expertise: row.cells[10].innerText.trim(), <!-- 新增字段 -->
+                    photo: row.cells[11].innerText.trim()
+                };
+                console.log('Sending data:', data);
+
+                // 验证数据格式
+                const errors = validateData(data);
+                if (errors.length > 0) {
+                    alert('保存失败:\n' + errors.join('\n'));
+                    return;
+                }
+
+                $.ajax({
+                    url: "{% url 'persons:save_person' %}",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        console.log('保存成功', response);
+                        row.setAttribute('contenteditable', 'false');
+                        target.textContent = '编辑';
+                        target.classList.remove('save-btn');
+                        target.classList.add('edit-btn');
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('保存失败', status, error);
+                        console.log(xhr.responseText);
+                        alert('保存失败');
+                    }
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

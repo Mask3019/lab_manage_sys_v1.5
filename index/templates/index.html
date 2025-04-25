@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<!-- Hero Section -->
+    <section id="hero" class="hero section dark-background">
+
+      <div class="info d-flex align-items-center">
+        <div class="container">
+          <div class="row justify-content-center" data-aos="fade-up" data-aos-delay="100">
+            <div class="col-lg-6 text-center">
+              <h2>Welcome to SAGW Laboratory</h2>
+              <p>材料设计开发、材料理化检测和开发试制、总成开发验证；从材料到整车全过程检测认证。</p>
+              <a href="#get-started" class="btn-get-started">开始</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="hero-carousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
+
+        <div class="carousel-item active">
+          <img src="{% static 'images/index/lab4.jpg' %}" alt="">
+        </div>
+
+        <div class="carousel-item">
+          <img src="{% static 'images/index/lab3.jpg' %}" alt="">
+        </div>
+
+        <div class="carousel-item">
+          <img src="{% static 'images/index/lab2.jpg' %}" alt="">
+        </div>
+
+        <div class="carousel-item">
+          <img src="{% static 'images/index/lab1.jpg' %}" alt="">
+        </div>
+
+        <div class="carousel-item">
+          <img src="{% static 'images/index/lab5.jpg' %}" alt="">
+        </div>
+
+        <a class="carousel-control-prev" href="#hero-carousel" role="button" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon bi bi-chevron-left" aria-hidden="true"></span>
+        </a>
+
+        <a class="carousel-control-next" href="#hero-carousel" role="button" data-bs-slide="next">
+          <span class="carousel-control-next-icon bi bi-chevron-right" aria-hidden="true"></span>
+        </a>
+
+      </div>
+    </section><!-- /Hero Section -->
+
+
+<!-- Get Started Section -->
+<!-------------------------- Get Started Section ----------------------------------------->
+    <section id="get-started" class="constructions section">
+
+      <div class="container section-title" data-aos="fade-up">
+        <h2>组织架构</h2>
+        <p>实验中心由实验管理、材料开发、检测中心和试制中心组成</p>
+      </div><!-- End Section Title -->
+
+      <div class="container">
+
+        <div class="row gy-4">
+
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="card-item">
+              <div class="row">
+                <div class="col-xl-5">
+                  <div class="card-bg"><img src="{% static 'images/index/jihua.png' %}" alt=""></div>
+                </div>
+                <div class="col-xl-7 d-flex align-items-center">
+                  <div class="card-body">
+                    <h4 class="card-title">实验管理</h4>
+                    <p>实验计划管理包括制定和调整年度、季度、月度计划。实验过程控制确保按标准操作规程进行并监督指导。质量管理制定实施质量管理体系，进行审核和解决问题。人员管理负责培训和考核，合理安排工作，提高团队效率。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div><!-- End Card Item -->
+
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="200">
+            <div class="card-item">
+              <div class="row">
+                <div class="col-xl-5">
+                  <div class="card-bg"><img src="{% static 'images/index/cailiao.jpg' %}" alt=""></div>
+                </div>
+                <div class="col-xl-7 d-flex align-items-center">
+                  <div class="card-body">
+                    <h4 class="card-title">材料开发</h4>
+                    <p>开发应用于汽车领域的金属材料，通过先进的合成和表征技术提升性能，推动新材料在汽车领域的应用和产业化。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div><!-- End Card Item -->
+
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="400">
+            <div class="card-item">
+              <div class="row">
+                <div class="col-xl-5">
+                  <div class="card-bg"><img src="{% static 'images/index/qiche.png' %}" alt=""></div>
+                </div>
+                <div class="col-xl-7 d-flex align-items-center">
+                  <div class="card-body">
+                    <h4 class="card-title">检测中心</h4>
+                    <p>负责变速器和电驱系统的总成级和零部件级试验，确保每个组件和系统在各种工况下的性能和可靠性。此外，我们还进行整车驾评试验，通过模拟实际驾驶环境，对整车的操控性、舒适性和安全性能进行全面评估，从而提供优化建议，提升整车的整体质量和用户体验。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div><!-- End Card Item -->
+
+          <div class="col-lg-6" data-aos="fade-up" data-aos-delay="400">
+            <div class="card-item">
+              <div class="row">
+                <div class="col-xl-5">
+                  <div class="card-bg"><img src="{% static 'images/index/jichuang.jpg' %}" alt=""></div>
+                </div>
+                <div class="col-xl-7 d-flex align-items-center">
+                  <div class="card-body">
+                    <h4 class="card-title">试制中心</h4>
+                    <p>产品试制分阶段验证设计及工艺可行性，涵盖设计评审、物料准备、测试验证和问题优化，输出BOM、工艺文件及测试报告，确保量产前完成风险管控、降本增效，实现设计到生产的平稳过渡。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div><!-- End Card Item -->
+
+        </div>
+
+      </div>
+    </section><!-- /Get Started Section -->
+
+<!----------------------------- /services Section --------------------------------------------->
+    <section id="services" class="services section light-background">
+
+      <!-- Section Title -->
+      <div class="container section-title" data-aos="fade-up">
+        <h2>重点业务</h2>
+        <p>以专业的态度和技能，提供高效、精确的检测服务</p>
+      </div><!-- End Section Title -->
+
+      <div class="container">
+
+        <div class="row gy-4">
+
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
+            <div class="service-item  position-relative">
+              <div class="icon">
+                <i class="fa-solid fa-mountain-city"></i>
+              </div>
+              <h3>新材料开发</h3>
+              <p>致力于研究和合成具有优异性能的新型金属材料，探索金属材料的微观结构和宏观性能之间的关系</p>
+              <a href="#" class="readmore stretched-link">Read more <i class="bi bi-arrow-right"></i></a>
+            </div>
+          </div><!-- End Service Item -->
+
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="fa-solid fa-arrow-up-from-ground-water"></i>
+              </div>
+              <h3>失效分析</h3>
+              <p>化学成分分析、显微组织分析、机械性能测试、电学性能测试、热学性能测试和腐蚀耐久性测试</p>
+              <a href="#" class="readmore stretched-link">Read more <i class="bi bi-arrow-right"></i></a>
+            </div>
+          </div><!-- End Service Item -->
+
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="fa-solid fa-compass-drafting"></i>
+              </div>
+              <h3>接头试验</h3>
+              <p>控制扭矩和转角，各类螺栓连接结构强度和可靠性分析</p>
+              <a href="#" class="readmore stretched-link">Read more <i class="bi bi-arrow-right"></i></a>
+            </div>
+          </div><!-- End Service Item -->
+
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="fa-solid fa-trowel-bricks"></i>
+              </div>
+              <h3>开发试制</h3>
+              <p>确保量产前完成风险管控、降本增效，实现设计到生产的平稳过渡。</p>
+              <a href="#" class="readmore stretched-link">Read more <i class="bi bi-arrow-right"></i></a>
+            </div>
+          </div><!-- End Service Item -->
+
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="fa-solid fa-helmet-safety"></i>
+              </div>
+              <h3>台架试验</h3>
+              <p>变速器和电驱系统的总成和零部件相关的耐久和性能测试</p>
+              <a href="#" class="readmore stretched-link">Read more <i class="bi bi-arrow-right"></i></a>
+            </div>
+          </div><!-- End Service Item -->
+
+          <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
+            <div class="service-item position-relative">
+              <div class="icon">
+                <i class="fa-solid fa-arrow-up-from-ground-water"></i>
+              </div>
+              <h3>整车驾评</h3>
+              <p>在试车场的直线性能路、动态广场、强化坏路、涉水路和坡道，开展整车性能相关的测试</p>
+              <a href="#" class="readmore stretched-link">Read more <i class="bi bi-arrow-right"></i></a>
+            </div>
+          </div><!-- End Service Item -->
+
+        </div>
+
+      </div>
+
+    </section><!-- /Services Section -->
+
+<!-- Features Section -->
+<!----------------------------- / Features Section --------------------------------------------->
+    <section id="features" class="features section">
+
+      <div class="container">
+
+        <ul class="nav nav-tabs row  g-2 d-flex" data-aos="fade-up" data-aos-delay="100" role="tablist">
+
+          <li class="nav-item col-3" role="presentation">
+            <a class="nav-link active show" data-bs-toggle="tab" data-bs-target="#features-tab-1" aria-selected="true" role="tab">
+              <h4>理化分析</h4>
+            </a>
+          </li><!-- End tab nav item -->
+
+          <li class="nav-item col-3" role="presentation">
+            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#features-tab-2" aria-selected="false" tabindex="-1" role="tab">
+              <h4>开发试制</h4>
+            </a><!-- End tab nav item -->
+
+          </li>
+          <li class="nav-item col-3" role="presentation">
+            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#features-tab-3" aria-selected="false" tabindex="-1" role="tab">
+              <h4>台架试验</h4>
+            </a>
+          </li><!-- End tab nav item -->
+
+          <li class="nav-item col-3" role="presentation">
+            <a class="nav-link" data-bs-toggle="tab" data-bs-target="#features-tab-4" aria-selected="false" tabindex="-1" role="tab">
+              <h4>整车驾评</h4>
+            </a>
+          </li><!-- End tab nav item -->
+
+        </ul>
+
+        <div class="tab-content" data-aos="fade-up" data-aos-delay="200">
+
+          <div class="tab-pane fade active show" id="features-tab-1" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-6 order-2 order-lg-1 mt-3 mt-lg-0 d-flex flex-column justify-content-center">
+                <h3>材料的理化性能测试</h3>
+                <p class="fst-italic">
+                  通过高精度设备和先进技术，全面评估材料的化学成分和微观结构，确保材料质量和性能的稳定性，为产品研发和制造提供科学依据，推动技术进步和创新。
+                </p>
+                <ul>
+                  <li><i class="bi bi-check2-all"></i> <span>扫描电子显微镜：观察和分析材料的表面形貌和微观结构，研究材料的晶粒结构、断口分析和微观缺陷。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>碳硫分析仪：测量金属材料中的碳和硫含量，评估材料的化学成分。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>氧氮氢分析仪：测量金属材料中的氧、氮、氢含量，评估材料的纯度和冶金质量。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>红外光谱仪：测量材料中的分子结构和化学成分，广泛应用于有机材料和聚合物的分析。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>直读光谱仪：测量金属材料中的元素含量，定量测定，快速、准确地评估材料的化学成分。</span></li>
+                </ul>
+              </div>
+              <div class="col-lg-6 order-1 order-lg-2 text-center">
+                <img src="{% static 'images/index/理化分析.png' %}" alt="" class="img-fluid">
+              </div>
+            </div>
+          </div><!-- End tab content item -->
+
+          <div class="tab-pane fade" id="features-tab-2" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-6 order-2 order-lg-1 mt-3 mt-lg-0 d-flex flex-column justify-content-center">
+                <h3>新产品开发试制</h3>
+                <p class="fst-italic">
+                  通过样机、小批量及中批量试制分阶段验证设计可行性、生产工艺及稳定性。
+                </p>
+                <ul>
+                  <li><i class="bi bi-check2-all"></i> <span>样机试制（原型阶段）：进行初步功能测试，验证核心性能是否达标。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>小批量试制（工艺验证）：识别工艺瓶颈（如工序效率低、操作复杂度高）。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>过程问题管理：组织跨部门会议分析问题原因，制定改进措施。</span></li>
+                </ul>
+              </div>
+              <div class="col-lg-6 order-1 order-lg-2 text-center">
+                <img src="{% static 'images/index/精密测量.png' %}" alt="" class="img-fluid">
+              </div>
+            </div>
+          </div><!-- End tab content item -->
+
+          <div class="tab-pane fade" id="features-tab-3" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-6 order-2 order-lg-1 mt-3 mt-lg-0 d-flex flex-column justify-content-center">
+                <h3>变速器及电桥系统台架试验</h3>
+                <p class="fst-italic">
+                  目前检测中心的设备可以满足绝大部分的产品的开发验证试验，工程师具备独立、自主开发电机控制器检测设备的能力，可以灵活定制台架
+                的试验功能。
+                </p>
+                <ul>
+                  <li><i class="bi bi-check2-all"></i> <span>传统变速器总成及零部件的耐久、性能试验</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>传统变速器及混动变速器的发动机拖动试验</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>新能源产品的总成耐久、性能试验；各种环境类试验</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>电机和控制器的耐久、性能类试验</span></li>
+                </ul>
+
+              </div>
+              <div class="col-lg-6 order-1 order-lg-2 text-center">
+                <img src="{% static 'images/index/台架试验.png' %}" alt="" class="img-fluid">
+              </div>
+            </div>
+          </div><!-- End tab content item -->
+
+          <div class="tab-pane fade" id="features-tab-4" role="tabpanel">
+            <div class="row">
+              <div class="col-lg-6 order-2 order-lg-1 mt-3 mt-lg-0 d-flex flex-column justify-content-center">
+                <h3>多路况整车测试</h3>
+                <p class="fst-italic">
+                  模拟多种真实路况，全面评估和优化车辆的性能、安全性和耐久性，为汽车研发和生产提供科学数据支持，提升整车质量和用户体验。
+                </p>
+                <ul>
+                  <li><i class="bi bi-check2-all"></i> <span>直线性能路：测试车辆的加速性能、制动性能和直线行驶稳定性。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>动态广场：测试车辆的操控性能、转向响应和稳定控制系统。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>强化坏路：模拟极端恶劣路况，测试车辆的耐久性和悬挂系统的性能。</span></li>
+                  <li><i class="bi bi-check2-all"></i> <span>涉水路：评估车辆的涉水能力和密封性。</span></li>
+                </ul>
+              </div>
+              <div class="col-lg-6 order-1 order-lg-2 text-center">
+                <img src="{% static 'images/index/试车场.png' %}" alt="" class="img-fluid">
+              </div>
+            </div>
+          </div><!-- End tab content item -->
+
+        </div>
+
+      </div>
+
+    </section><!-- /Features Section -->
+{% endblock content %}

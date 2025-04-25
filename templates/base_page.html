@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>SAGW 实验中心管理系统</title>
+    <meta content="" name="description">
+    <meta content="" name="keywords">
+    
+    <!-- Favicons -->
+    <link href="{% static 'images/logo_sagw_blue.png' %}" rel="icon">
+    <link href="{% static 'images/logo_sagw_blue.png' %}" rel="apple-touch-icon">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400;1,500;1,600;1,700;1,800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+    
+    <!-- Vendor CSS Files -->
+    <link href="{% static 'css/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+    <link href="{% static 'css/vendor/aos/aos.css' %}" rel="stylesheet">
+    <link href="{% static 'css/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+    <link href="{% static 'css/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    
+    <!-- Main CSS File -->
+    <link href="{% static 'css/main.css' %}" rel="stylesheet">
+    
+    <!-- =======================================================
+    * Template Name: UpConstruction
+    * Template URL: https://bootstrapmade.com/upconstruction-bootstrap-construction-website-template/
+    * Updated: Jun 29 2024 with Bootstrap v5.3.3
+    * Author: BootstrapMade.com
+    * License: https://bootstrapmade.com/license/
+    ======================================================== -->
+</head>
+<body>
+<header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center justify-content-between">
+
+      <a href="/" class="logo d-flex align-items-center">
+        <!-- Uncomment the line below if you also wish to use an image logo -->
+        <img src="{% static 'images/logo_sagw_blue.png' %}" alt="">
+        <h1 class="sitename">实验中心管理系统</h1> <span>.</span>
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="/" class="{% if request.path == '/' %}active{% endif %}">首页</a></li>
+          <li class="dropdown"><a href="{% url 'persons:persons_list' %}" class="{% if 'persons_list' in request.path %}active{% endif %}"><span>人员管理</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li><a href="{% url 'persons:persons_list' %}">人员清单</a></li>
+              <li><a href="{% url 'persons:persons_skills' %}">人员能力</a></li>
+              <li><a href="{% url 'persons:persons_tasks' %}">人员负荷</a></li>
+              <li><a href="{% url 'persons:persons_overtime' %}">人员加班</a></li>
+            </ul>
+          <li class="dropdown"><a href="{% url 'equipment:equipment_information' %}" class="{% if 'equipment_info' in request.path %}active{% endif %}"><span>设备管理</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li class="dropdown"><a href="{% url 'equipment:equipment_information' %}"><span>设备信息</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                <ul>
+                  <li><a href="#">设备列表</a></li>
+                  <li><a href="#">新增设备</a></li>
+                  <li><a href="#">更新信息</a></li>
+                </ul>
+              <li><a href="{% url 'equipment:equipment_status' %}">设备状态</a></li>
+              <li><a href="{% url 'equipment:equipment_maintenance' %}">设备保养</a></li>
+              <li class="dropdown"><a href="{% url 'equipment:equipment_repair' %}"><span>设备维修</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                <ul>
+                  <li><a href="#">维修申请</a></li>
+                  <li><a href="#">维修进度</a></li>
+                  <li><a href="#">设备病历</a></li>
+                  <li><a href="#">汇总分析</a></li>
+                </ul>
+            </ul>
+          <li class="dropdown"><a href="{% url 'experiment:experiment_tasks' %}" class="{% if 'experiment_tasks' in request.path %}active{% endif %}"><span>试验管理</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li class="dropdown"><a href="{% url 'experiment:experiment_tasks' %}"><span>试验任务</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                <ul>
+                  <li><a href="#">每日任务</a></li>
+                  <li><a href="#">长期任务</a></li>
+                  <li><a href="#">紧急任务</a></li>
+                </ul>
+              <li class="dropdown"><a href="{% url 'experiment:experiment_progress' %}"><span>试验进度</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                <ul>
+                  <li><a href="#">信息维护</a></li>
+                  <li><a href="#">进度概览</a></li>
+                  <li><a href="#">拖点汇总</a></li>
+                </ul>
+              <li class="dropdown"><a href="{% url 'experiment:experiment_statistics' %}"><span>试验统计</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+                <ul>
+                  <li><a href="#">按设备统计</a></li>
+                  <li><a href="#">按项目统计</a></li>
+                </ul>
+            </ul>
+          <li class="dropdown"><a href="{% url 'inventory:inventory_in' %}" class="{% if 'inventory_in' in request.path %}active{% endif %}"><span>库存管理</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li><a href="{% url 'inventory:inventory_in' %}">入库登记</a></li>
+              <li><a href="{% url 'inventory:inventory_out' %}">出库登记</a></li>
+              <li><a href="{% url 'inventory:inventory_alarm' %}">库存预警</a></li>
+              <li><a href="{% url 'inventory:inventory_discard' %}">报废汇总</a></li>
+            </ul>
+          <li class="dropdown"><a href="{% url 'dismantle:dismantle_apply' %}" class="{% if 'dismantle_apply' in request.path %}active{% endif %}"><span>拆解管理</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li><a href="{% url 'dismantle:dismantle_apply' %}">拆解任务申请</a></li>
+              <li><a href="{% url 'dismantle:dismantle_register' %}">拆解结果登记</a></li>
+              <li><a href="{% url 'dismantle:dismantle_issue' %}">失效问题汇总</a></li>
+              <li><a href="{% url 'dismantle:dismantle_PQCP' %}">PQCP登记</a></li>
+            </ul>
+          <li class="dropdown"><a href="{% url 'comprehensive:report_register' %}" class="{% if 'report_register' in request.path %}active{% endif %}"><span>综合管理</span> <i class="bi bi-chevron-down toggle-dropdown"></i></a>
+            <ul>
+              <li><a href="{% url 'comprehensive:report_register' %}">报告出具登记</a></li>
+              <li><a href="{% url 'comprehensive:report_delay' %}">拖延报告汇总</a></li>
+              <li><a href="{% url 'comprehensive:report_analysis' %}">报告汇总分析</a></li>
+            </ul>
+          <li><a href="{% url 'person_center:person_center' %}" class="{% if 'personal' in request.path %}active{% endif %}">个人中心</a></li>
+            
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+
+    </div>
+  </header>
+
+
+
+{% block content %}
+
+        
+{% endblock %}
+
+<!-- ======================================================= -->
+{#页脚内容#}
+    <footer id="footer" class="footer dark-background">
+    
+    <div class="container footer-top">
+      <div class="row gy-4">
+        <div class="col-lg-4 col-md-6 footer-about">
+          <a href="/" class="logo d-flex align-items-center">
+            <span class="sitename">SAGW Laboratory</span>
+          </a>
+          <div class="footer-contact pt-3">
+            <p>上海市嘉定区汇旺路600号</p>
+            <p>上海汽车变速器有限公司实验中心</p>
+            <p class="mt-3"><strong>Phone:</strong> <span>130-5231-0560</span></p>
+            <p><strong>Email:</strong> <span>yumeng@sagw.com</span></p>
+          </div>
+          <div class="social-links d-flex mt-4">
+            <a href=""><i class="bi bi-twitter-x"></i></a>
+            <a href=""><i class="bi bi-facebook"></i></a>
+            <a href=""><i class="bi bi-instagram"></i></a>
+            <a href=""><i class="bi bi-linkedin"></i></a>
+          </div>
+        </div>
+    
+        <div class="col-lg-2 col-md-3 footer-links">
+          <h4>友情链接</h4>
+          <ul>
+            <li><a href="/">首页</a></li>
+            <li><a href="{% url 'persons:persons_list' %}">人员管理</a></li>
+            <li><a href="{% url 'equipment:equipment_information' %}">设备管理</a></li>
+            <li><a href="{% url 'experiment:experiment_tasks' %}">试验管理</a></li>
+            <li><a href="{% url 'inventory:inventory_in' %}">库存管理</a></li>
+          </ul>
+        </div>
+    
+        <div class="col-lg-2 col-md-3 footer-links">
+          <h4>重点业务</h4>
+          <ul>
+            <li><a href="#">材料开发</a></li>
+            <li><a href="#">理化分析</a></li>
+            <li><a href="#">接头试验</a></li>
+            <li><a href="#">精密测量</a></li>
+            <li><a href="#">台架试验</a></li>
+            <li><a href="#">整车试验</a></li>
+          </ul>
+        </div>
+    
+        <div class="col-lg-2 col-md-3 footer-links">
+          <h4>数据分析</h4>
+          <ul>
+            <li><a href="{% url 'persons:persons_tasks' %}">人员负荷</a></li>
+            <li><a href="#">设备运行</a></li>
+            <li><a href="#">项目管理</a></li>
+            <li><a href="#">报告拖延</a></li>
+            <li><a href="#">试后失效</a></li>
+          </ul>
+        </div>
+    
+        <div class="col-lg-2 col-md-3 footer-links">
+          <h4>当前任务</h4>
+          <ul>
+            <li><a href="#">前期准备</a></li>
+            <li><a href="#">紧急任务</a></li>
+          </ul>
+        </div>
+    
+      </div>
+    </div>
+    
+    <div class="container copyright text-center mt-4">
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">SAGW Laboratory</strong> <span>All Rights Reserved</span></p>
+      <div class="credits">
+        <!-- All the links in the footer should remain intact. -->
+        <!-- You can delete the links only if you've purchased the pro version. -->
+        <!-- Licensing information: https://bootstrapmade.com/license/ -->
+        <!-- Purchase the pro version with working PHP/AJAX contact form: [buy-url] -->
+{#        Designed by <a href="{% url 'person_center:person_center' %}">MengYu</a>#}
+        Designed by <a href="#">MengYu</a>
+      </div>
+    </div>
+    
+    </footer>
+
+<!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'css/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'css/vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'css/vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'css/vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'css/vendor/imagesloaded/imagesloaded.pkgd.min.js' %}"></script>
+  <script src="{% static 'css/vendor/isotope-layout/isotope.pkgd.min.js' %}"></script>
+  <script src="{% static 'css/vendor/swiper/swiper-bundle.min.js' %}"></script>
+  <script src="{% static 'css/vendor/purecounter/purecounter_vanilla.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

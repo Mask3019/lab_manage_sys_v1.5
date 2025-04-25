@@ -1,0 +1,627 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/offices_banner.png' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href="{% url 'persons:persons_overtime_apply' %}">人员管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Starter Section -->
+    <section id="starter-section" class="starter-section section">
+      <div class="container" data-aos="fade-up" style="margin-top: 20px; margin-bottom: 20px;">
+        <div class="row">
+          <!-- 左侧下拉框和树控件 -->
+          <div class="col-md-3" style="width: 30%;"> <!-- 将原来的宽度增加20% -->
+            <!-- 卡片开始 -->
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title">搜索</h5>
+              </div>
+              <div class="card-body">
+                <!-- 年份下拉框 -->
+                <div class="form-group">
+                  <label for="yearSelect">选择年份:</label>
+                  <select id="yearSelect" class="form-control">
+                    {% for year in years %}
+                      <option value="{{ year }}">{{ year }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <!-- 树控件 -->
+                <div id="treeView" style="border: 1px solid #ccc; padding: 10px;">
+                  <!-- 树结构将在前端通过JavaScript生成 -->
+                </div>
+              </div>
+            </div>
+            <!-- 卡片结束 -->
+          </div>
+
+          <!-- 右侧表单 -->
+          <div class="col-md-9" style="width: 70%;"> <!-- 相应调整右侧的宽度 -->
+            <!-- 卡片开始 -->
+            <div class="card shadow">
+              <!-- 卡片顶部标题 -->
+              <div class="card-header text-center" style="font-size: 1.5rem; font-weight: bold;">
+                人员加班申请
+              </div>
+              <div class="card-body">
+                <!-- 显示消息 -->
+                {% if messages %}
+                  {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} text-center alert-dismissible fade show" role="alert" {% if 'error' in message.tags %}style="color: red; font-weight: bold;"{% endif %}>
+                      {{ message }}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                  {% endfor %}
+                {% endif %}
+                <!-- 加班登记表单开始 -->
+                <form method="POST" action="{% url 'persons:save_overtime_application' %}" id="overtimeForm">
+                  {% csrf_token %}
+
+                  <!-- 第一行：申请编号、工号、提交人姓名、加班人员姓名 -->
+                  <div class="row mb-4">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="application_number">申请编号:</label>
+                        <input type="text" id="application_number" name="application_number" class="form-control" value="{{ application_number }}" readonly style="background-color: #e9ecef;">
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="employee_id">工号:</label>
+                        <!-- 显示状态，不可编辑 -->
+                        <input type="text" id="employee_id" name="employee_id" class="form-control" value="{{ employee_id }}" readonly style="background-color: #e9ecef;">
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="submitter_name">提交人姓名:</label>
+                        <!-- 显示状态，不可编辑 -->
+                        <input type="text" id="submitter_name" name="submitter_name" class="form-control" value="{{ submitter_name }}" readonly style="background-color: #e9ecef;">
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="overtime_employee_name">加班人员姓名:</label>
+                        <input type="text" id="overtime_employee_name" name="overtime_employee_name" class="form-control" value="{{ overtime_employee_name }}">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 第二行：申请日期、开始时间、结束时间、时长 -->
+                  <div class="row mb-4">
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="application_date">申请日期:</label>
+                        <input type="date" id="application_date" name="application_date" class="form-control" value="{{ application_date }}">
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="start_time">开始时间:</label>
+                        <select id="start_time" name="start_time" class="form-control" required>
+                          <option value="">请选择开始时间</option>
+                          {% for time in time_options %}
+                            <option value="{{ time }}">{{ time }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="end_time">结束时间:</label>
+                        <select id="end_time" name="end_time" class="form-control" required>
+                          <option value="">请选择结束时间</option>
+                          {% for time in time_options %}
+                            <option value="{{ time }}">{{ time }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="form-group">
+                        <label for="duration">时长（小时）:</label>
+                        <input type="text" id="duration" name="duration" class="form-control" readonly style="background-color: #e9ecef;">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 第三行：加班原因 -->
+                  <div class="row mb-4">
+                    <div class="col-md-12">
+                      <div class="form-group position-relative">
+                        <label for="reason">加班原因:</label>
+                        <textarea id="reason" name="reason" class="form-control" rows="3" required></textarea>
+                        <!-- 提示框 -->
+                        <div id="hint-box" class="alert alert-info position-absolute" style="display: none; top: 100%; left: 0; width: 100%;">
+                          提示：什么项目的什么试验，哪个设备进行什么试验，该加班的目的是啥。
+                          <br>案例：SH27G1N差速器便捷试验，B06台架加班验证不同扭矩工况对电机温度的影响，
+                          提供数据支持项目组和客户沟通修改试验考核要求。
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 审批流程 -->
+                  {% if 'persons.can_approve_line_leader' in user_permissions %}
+                    <!-- 条线领导审批 -->
+                    <div class="row mb-4">
+                      <div class="col-md-12">
+                        <div class="form-group">
+                          <label>条线领导审批:</label>
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="line_leader_approval" id="lineLeaderAgree" value="agree">
+                            <label class="form-check-label" for="lineLeaderAgree">
+                              同意
+                            </label>
+                          </div>
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="line_leader_approval" id="lineLeaderReject" value="reject">
+                            <label class="form-check-label" for="lineLeaderReject">
+                              驳回
+                            </label>
+                          </div>
+                        </div>
+                        <!-- 驳回原因 -->
+                        <div class="form-group" id="lineLeaderRejectionReasonDiv" style="display: none;">
+                          <label for="line_leader_rejection_reason">驳回原因:</label>
+                          <textarea id="line_leader_rejection_reason" name="line_leader_rejection_reason" class="form-control" rows="2"></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  {% elif 'persons.can_approve_department_leader' in user_permissions %}
+                    <!-- 部门领导审批 -->
+                    <div class="row mb-4">
+                      <div class="col-md-12">
+                        <div class="form-group">
+                          <label>部门领导审批:</label>
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="department_leader_approval" id="departmentLeaderAgree" value="agree">
+                            <label class="form-check-label" for="departmentLeaderAgree">
+                              同意
+                            </label>
+                          </div>
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="department_leader_approval" id="departmentLeaderReject" value="reject">
+                            <label class="form-check-label" for="departmentLeaderReject">
+                              驳回
+                            </label>
+                          </div>
+                        </div>
+                        <!-- 驳回原因 -->
+                        <div class="form-group" id="departmentLeaderRejectionReasonDiv" style="display: none;">
+                          <label for="department_leader_rejection_reason">驳回原因:</label>
+                          <textarea id="department_leader_rejection_reason" name="department_leader_rejection_reason" class="form-control" rows="2"></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  {% else %}
+                    <!-- 运行人员查看驳回原因 -->
+                    <div class="row mb-4">
+                      <div class="col-md-12">
+                        <div id="rejectionReasons">
+                          <!-- 驳回原因将通过JavaScript动态插入 -->
+                        </div>
+                      </div>
+                    </div>
+                  {% endif %}
+
+                  <!-- 按钮组 -->
+                  <div class="d-flex justify-content-end">
+                    {% if 'persons.can_approve_line_leader' in user_permissions or 'persons.can_approve_department_leader' in user_permissions %}
+                      <button type="submit" class="btn btn-success me-2" id="submitBtn">提交</button>
+                    {% else %}
+                      <!-- 运行人员 -->
+                      <button type="submit" class="btn btn-success me-2" id="submitBtn">提交申请</button>
+                      <button type="button" class="btn btn-danger me-2" id="deleteBtn">删除申请</button>
+                      <button type="button" class="btn btn-secondary" id="clearBtn">清空内容</button>
+                    {% endif %}
+                  </div>
+                </form>
+                <!-- 加班登记表单结束 -->
+
+              </div>
+            </div>
+            <!-- 卡片结束 -->
+          </div>
+        </div>
+      </div>
+    </section><!-- /Starter Section -->
+
+</main>
+
+<!-- 将 applications 数据传递给 JavaScript -->
+{{ applications|json_script:"appData" }}
+<!-- 将 user_permissions 数据传递给 JavaScript -->
+{{ user_permissions|json_script:"userPermissions" }}
+
+<!-- 确认提交模态框 -->
+<div class="modal fade" id="confirmSubmitModal" tabindex="-1" aria-labelledby="confirmSubmitModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmSubmitModalLabel">确认提交</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        请您再次确认加班申请信息。
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="confirmSubmitBtn">确认</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 确认删除模态框 -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">确认删除</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+      </div>
+      <div class="modal-body">
+        您确定要删除此加班申请吗？
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">确认删除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 引入 Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // 计算并更新时长的函数
+  function calculateDuration() {
+    var startTime = document.getElementById('start_time').value;
+    var endTime = document.getElementById('end_time').value;
+
+    if (startTime && endTime) {
+      var start = new Date("1970-01-01T" + startTime + "Z");
+      var end = new Date("1970-01-01T" + endTime + "Z");
+
+      var diff = (end - start) / (1000 * 60 * 60);  // 转换为小时
+      if (diff < 0) {
+        diff += 24;  // 跨过午夜的情况
+      }
+
+      document.getElementById('duration').value = diff.toFixed(1);  // 保留一位小数
+    }
+  }
+
+  // 监听开始时间和结束时间的改变事件
+  document.getElementById('start_time').addEventListener('change', calculateDuration);
+  document.getElementById('end_time').addEventListener('change', calculateDuration);
+
+  // 显示提示框
+  document.getElementById('reason').addEventListener('focus', function() {
+    document.getElementById('hint-box').style.display = 'block';
+  });
+
+  // 点击页面其他地方时隐藏提示框
+  document.addEventListener('click', function(event) {
+    var hintBox = document.getElementById('hint-box');
+    var reasonInput = document.getElementById('reason');
+    if (event.target !== reasonInput && !reasonInput.contains(event.target)) {
+      hintBox.style.display = 'none';
+    }
+  });
+
+  // 从 JSON 脚本中获取 applications 数据
+  var applications = JSON.parse(document.getElementById('appData').textContent);
+
+  // 从 JSON 脚本中获取 user_permissions 数据
+  var userPermissions = JSON.parse(document.getElementById('userPermissions').textContent);
+
+  // 获取登录用户名
+  var currentUser = '{{ request.user.username }}';
+
+  // 获取年份下拉框的值，初始化树控件
+  var yearSelect = document.getElementById('yearSelect');
+  var treeView = document.getElementById('treeView');
+
+  function buildTree() {
+    treeView.innerHTML = '';  // 清空树控件
+    var selectedYear = yearSelect.value;
+
+    // 筛选出选中年份的申请
+    var filteredApps = applications.filter(function(app) {
+      return new Date(app.application_date).getFullYear() == selectedYear;
+    });
+
+    // 根据用户权限筛选数据
+    if (userPermissions.includes('persons.can_approve_line_leader') || userPermissions.includes('persons.can_approve_department_leader')) {
+      // 条线领导或部门领导，显示所有数据
+    } else {
+      // 运行人员，只显示自己的数据
+      filteredApps = filteredApps.filter(function(app) {
+        return app.employee_id === currentUser;
+      });
+    }
+
+    // 构建月份为键的对象
+    var monthDict = {};
+    filteredApps.forEach(function(app) {
+      var date = new Date(app.application_date);
+      var month = date.getMonth() + 1;  // 月份从0开始
+      if (!monthDict[month]) {
+        monthDict[month] = [];
+      }
+      monthDict[month].push(app);
+    });
+
+    // 创建树结构
+    for (var month = 1; month <= 12; month++) {
+      var monthApps = monthDict[month];
+      if (monthApps) {
+        // 创建月份节点
+        var monthNode = document.createElement('div');
+        monthNode.innerHTML = '<i class="fas fa-plus-square"></i> ' + '<strong>' + month + '月</strong>';
+        monthNode.style.cursor = 'pointer';
+        monthNode.style.marginBottom = '5px';
+
+        // 创建申请编号子节点
+        var appList = document.createElement('ul');
+        appList.style.display = 'none'; // 初始时子列表隐藏
+
+        monthNode.addEventListener('click', function(appListCopy, icon) {
+          return function() {
+            if (appListCopy.style.display === 'none') {
+              appListCopy.style.display = 'block';
+              icon.classList.remove('fa-plus-square');
+              icon.classList.add('fa-minus-square');
+            } else {
+              appListCopy.style.display = 'none';
+              icon.classList.remove('fa-minus-square');
+              icon.classList.add('fa-plus-square');
+            }
+          };
+        }(appList, monthNode.querySelector('i')));
+
+        monthApps.forEach(function(app) {
+          var appItem = document.createElement('li');
+          appItem.textContent = app.application_number + ' - ' + app.approval_status;
+          appItem.style.cursor = 'pointer';
+          appItem.dataset.appId = app.id;  // 存储申请的ID
+          appItem.style.color = app.status_color;  // 设置字体颜色
+
+          // 添加点击事件，加载申请数据到表单
+          appItem.addEventListener('click', function(event) {
+            event.stopPropagation(); // 防止事件冒泡到父节点
+            var appId = this.dataset.appId;
+            // 发送AJAX请求，获取申请数据
+            fetch("{% url 'persons:get_overtime_application_data' %}", {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: 'application_id=' + appId,
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.status === 'success') {
+                // 将数据填充到表单
+                document.getElementById('application_number').value = data.data.application_number;
+                document.getElementById('employee_id').value = data.data.employee_id;
+                document.getElementById('submitter_name').value = data.data.submitter_name;
+                document.getElementById('overtime_employee_name').value = data.data.overtime_employee_name;
+                document.getElementById('application_date').value = data.data.application_date;
+                document.getElementById('start_time').value = data.data.start_time;
+                document.getElementById('end_time').value = data.data.end_time;
+                document.getElementById('duration').value = data.data.duration;
+                document.getElementById('reason').value = data.data.reason;
+
+                // 清除审批状态选择
+                if (document.getElementById('lineLeaderAgree')) {
+                  document.getElementById('lineLeaderAgree').checked = false;
+                }
+                if (document.getElementById('lineLeaderReject')) {
+                  document.getElementById('lineLeaderReject').checked = false;
+                }
+                if (document.getElementById('departmentLeaderAgree')) {
+                  document.getElementById('departmentLeaderAgree').checked = false;
+                }
+                if (document.getElementById('departmentLeaderReject')) {
+                  document.getElementById('departmentLeaderReject').checked = false;
+                }
+
+                // 显示驳回原因
+                var rejectionDiv = document.getElementById('rejectionReasons');
+                if (rejectionDiv) {
+                  // 清空之前的内容，防止重复添加
+                  rejectionDiv.innerHTML = '';
+
+                  if (data.data.line_leader_rejection_reason) {
+                    var lineRejection = document.createElement('div');
+                    lineRejection.className = 'alert alert-warning';
+                    lineRejection.innerHTML = '<strong>条线领导驳回原因：</strong>' + data.data.line_leader_rejection_reason;
+                    rejectionDiv.appendChild(lineRejection);
+                  }
+                  if (data.data.department_leader_rejection_reason) {
+                    var deptRejection = document.createElement('div');
+                    deptRejection.className = 'alert alert-warning';
+                    deptRejection.innerHTML = '<strong>部门领导驳回原因：</strong>' + data.data.department_leader_rejection_reason;
+                    rejectionDiv.appendChild(deptRejection);
+                  }
+                }
+
+                // 显示或隐藏审批部分
+                if (userPermissions.includes('persons.can_approve_line_leader')) {
+                  // 条线领导审批
+                  if (data.data.line_leader_approval === true) {
+                    document.getElementById('lineLeaderAgree').checked = true;
+                  } else if (data.data.line_leader_approval === false) {
+                    document.getElementById('lineLeaderReject').checked = true;
+                    document.getElementById('lineLeaderRejectionReasonDiv').style.display = 'block';
+                    document.getElementById('line_leader_rejection_reason').value = data.data.line_leader_rejection_reason;
+                  }
+                } else if (userPermissions.includes('persons.can_approve_department_leader')) {
+                  // 部门领导审批
+                  if (data.data.department_leader_approval === true) {
+                    document.getElementById('departmentLeaderAgree').checked = true;
+                  } else if (data.data.department_leader_approval === false) {
+                    document.getElementById('departmentLeaderReject').checked = true;
+                    document.getElementById('departmentLeaderRejectionReasonDiv').style.display = 'block';
+                    document.getElementById('department_leader_rejection_reason').value = data.data.department_leader_rejection_reason;
+                  }
+                }
+
+              } else {
+                alert(data.message);
+              }
+            });
+          });
+
+          appList.appendChild(appItem);
+        });
+
+        treeView.appendChild(monthNode);
+        treeView.appendChild(appList);
+      }
+    }
+  }
+
+  // 初始化树控件
+  buildTree();
+
+  // 当年份下拉框改变时，重新构建树控件
+  yearSelect.addEventListener('change', buildTree);
+
+  // 成功提示信息自动消失
+  setTimeout(function() {
+    var alertElements = document.querySelectorAll('.alert-dismissible');
+    alertElements.forEach(function(alert) {
+      var bootstrapAlert = new bootstrap.Alert(alert);
+      bootstrapAlert.close();
+    });
+  }, 2000);
+
+  // 获取表单和按钮
+  var overtimeForm = document.getElementById('overtimeForm');
+  var submitBtn = document.getElementById('submitBtn');
+  var deleteBtn = document.getElementById('deleteBtn');
+  var clearBtn = document.getElementById('clearBtn');
+
+  // 监听提交按钮的点击事件
+  submitBtn.addEventListener('click', function(event) {
+    event.preventDefault(); // 阻止默认提交行为
+    // 显示确认提交的模态框
+    var confirmModal = new bootstrap.Modal(document.getElementById('confirmSubmitModal'));
+    confirmModal.show();
+  });
+
+  // 监听模态框中的确认按钮
+  document.getElementById('confirmSubmitBtn').addEventListener('click', function() {
+    // 提交表单
+    overtimeForm.submit();
+  });
+
+  // 监听删除按钮的点击事件
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', function(event) {
+      event.preventDefault(); // 阻止默认提交行为
+      // 显示确认删除的模态框
+      var confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+      confirmDeleteModal.show();
+    });
+
+    // 监听删除模态框中的确认删除按钮
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+      // 创建表单数据
+      var formData = new FormData();
+      formData.append('application_number', document.getElementById('application_number').value);
+      formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+      // 发送POST请求删除申请
+      fetch("{% url 'persons:delete_overtime_application' %}", {
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => {
+        // 刷新页面
+        window.location.href = "{% url 'persons:persons_overtime_apply' %}";
+      });
+    });
+  }
+
+  // 监听清空按钮的点击事件
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      // 清空表单中的内容（不包括标签）
+      overtimeForm.reset();
+      // 手动清除只读字段
+      document.getElementById('application_number').value = '';
+      document.getElementById('employee_id').value = '{{ employee_id }}';
+      document.getElementById('submitter_name').value = '{{ submitter_name }}';
+      document.getElementById('overtime_employee_name').value = '{{ overtime_employee_name }}';
+      document.getElementById('application_date').value = '{{ application_date }}';
+      document.getElementById('duration').value = '';
+
+      // 清除驳回原因显示
+      var rejectionDiv = document.getElementById('rejectionReasons');
+      if (rejectionDiv) {
+        rejectionDiv.innerHTML = '';
+      }
+
+      // 隐藏驳回原因输入框
+      if (document.getElementById('lineLeaderRejectionReasonDiv')) {
+        document.getElementById('lineLeaderRejectionReasonDiv').style.display = 'none';
+      }
+      if (document.getElementById('departmentLeaderRejectionReasonDiv')) {
+        document.getElementById('departmentLeaderRejectionReasonDiv').style.display = 'none';
+      }
+    });
+  }
+
+  // 显示或隐藏驳回原因输入框
+  var lineLeaderRejectRadio = document.getElementById('lineLeaderReject');
+  if (lineLeaderRejectRadio) {
+    lineLeaderRejectRadio.addEventListener('change', function() {
+      document.getElementById('lineLeaderRejectionReasonDiv').style.display = 'block';
+    });
+  }
+  var lineLeaderAgreeRadio = document.getElementById('lineLeaderAgree');
+  if (lineLeaderAgreeRadio) {
+    lineLeaderAgreeRadio.addEventListener('change', function() {
+      document.getElementById('lineLeaderRejectionReasonDiv').style.display = 'none';
+    });
+  }
+
+  var departmentLeaderRejectRadio = document.getElementById('departmentLeaderReject');
+  if (departmentLeaderRejectRadio) {
+    departmentLeaderRejectRadio.addEventListener('change', function() {
+      document.getElementById('departmentLeaderRejectionReasonDiv').style.display = 'block';
+    });
+  }
+  var departmentLeaderAgreeRadio = document.getElementById('departmentLeaderAgree');
+  if (departmentLeaderAgreeRadio) {
+    departmentLeaderAgreeRadio.addEventListener('change', function() {
+      document.getElementById('departmentLeaderRejectionReasonDiv').style.display = 'none';
+    });
+  }
+
+</script>
+
+{% endblock %}

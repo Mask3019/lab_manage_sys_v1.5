@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/design-2.jpg' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href={% url 'comprehensive:report_register' %}>综合管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Starter Section Section -->
+    <section id="starter-section" class="starter-section section">
+
+      <div class="container" data-aos="fade-up">
+
+        <!-- 搜索和新增行控件 -->
+        <div class="d-flex justify-content-between mb-3">
+          {% if user_has_permission %}
+            <button id="add-row" class="btn btn-primary">新增行</button>
+          {% endif %}
+          <input id="search-input" class="form-control" type="text" placeholder="搜索...">
+        </div>
+
+        <!-- 表格部分 -->
+        <div class="card mt-4"> <!-- 修改高度为750px -->
+          <table id="custom-table" class="table table-bordered table-striped mb-0" style="width: 100%;">
+            <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+              <tr>
+                <th style="text-align: center;width: 3%;">序号</th>
+                <th style="text-align: center;width: 10%;">委托部门</th>
+                <th style="text-align: center;width: 6%;">部门领导</th>
+                <th style="text-align: center;width: 7%;">部门领导邮箱</th>
+                <th style="text-align: center;width: 7%;">部门分管领导</th>
+                <th style="text-align: center;width: 7%;">分管领导邮箱</th>
+                <th style="text-align: center;width: 46%;">负责项目</th>
+
+                {% if user_has_permission %}
+                  <th style="text-align: center;">操作</th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.department_leader }}</td>
+                <td>{{ item.department_email }}</td>
+                <td>{{ item.tech_center_leader }}</td>
+                <td>{{ item.leader_email }}</td>
+                <td>{{ item.projects }}</td>
+                {% if user_has_permission %}
+                <td>
+                  <button class="btn btn-sm btn-info edit-btn">编辑</button>
+                  <button class="btn btn-sm btn-danger delete-btn">删除</button>
+                </td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <!-- 表格结束 -->
+      </div>
+
+    </section><!-- /Starter Section Section -->
+
+  </main>
+
+{% if error_message %}
+<script>
+    alert("{{ error_message }}");
+</script>
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM fully loaded and parsed');
+
+    // 搜索功能
+    document.getElementById('search-input').addEventListener('keyup', function () {
+        let searchValue = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#custom-table tbody tr');
+        rows.forEach(row => {
+            let cells = Array.from(row.cells).map(cell => cell.innerText.toLowerCase());
+            let match = cells.some(cellText => cellText.includes(searchValue));
+            row.style.display = match ? '' : 'none';
+        });
+    });
+
+    // 添加行
+    document.getElementById('add-row').addEventListener('click', function () {
+        let table = document.getElementById('custom-table').getElementsByTagName('tbody')[0];
+        let newRow = table.insertRow();
+        newRow.innerHTML = `
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td contenteditable="true"></td>
+            <td>
+                <button class="btn btn-sm btn-success save-btn">保存</button>
+                <button class="btn btn-sm btn-danger delete-btn">删除</button>
+            </td>`;
+        console.log('New row added');
+    });
+
+    // 监听表格点击事件
+    document.getElementById('custom-table').addEventListener('click', function (event) {
+        let target = event.target;
+        console.log('Clicked button:', target);
+
+        if (target.classList.contains('save-btn')) {
+            let row = target.closest('tr');
+            let data = {
+                name: row.cells[1].innerText.trim(),
+                department_leader: row.cells[2].innerText.trim(),
+                department_email: row.cells[3].innerText.trim(),
+                tech_center_leader: row.cells[4].innerText.trim(),
+                leader_email: row.cells[5].innerText.trim(),
+                projects: row.cells[6].innerText.trim(),
+            };
+            console.log('Sending data:', data);
+
+            // 验证数据格式
+            const errors = validateData(data);
+            if (errors.length > 0) {
+                alert('保存失败:\n' + errors.join('\n'));
+                return;
+            }
+
+            $.ajax({
+                url: "{% url 'comprehensive:save_client' %}",
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function (response) {
+                    console.log('保存成功', response);
+                    row.setAttribute('contenteditable', 'false');
+                    target.textContent = '编辑';
+                    target.classList.remove('save-btn');
+                    target.classList.add('edit-btn');
+                },
+                error: function (xhr, status, error) {
+                    console.error('保存失败', status, error);
+                    alert('保存失败');
+                }
+            });
+        }
+
+        if (target.classList.contains('edit-btn')) {
+            let row = target.closest('tr');
+            row.setAttribute('contenteditable', 'true');
+            target.textContent = '保存';
+            target.classList.remove('edit-btn');
+            target.classList.add('save-btn');
+        }
+
+        if (target.classList.contains('delete-btn')) {
+            let row = target.closest('tr');
+            let name = row.cells[1].innerText;
+            console.log('Deleting name:', name);
+            $.ajax({
+                url: "{% url 'comprehensive:delete_client' %}",
+                method: "POST",
+                data: {
+                    name: name,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function (response) {
+                    console.log('删除成功', response);
+                    row.remove();
+                },
+                error: function (xhr, status, error) {
+                    console.error('删除失败', status, error);
+                    alert('删除失败');
+                }
+            });
+        }
+    });
+
+    // 数据验证函数
+    function validateData(data) {
+        let errors = [];
+        if (!data.name) {
+            errors.push('委托部门不能为空');
+        }
+        if (!data.department_leader) {
+            errors.push('部门领导不能为空');
+        }
+        if (!data.department_email) {
+            errors.push('部门领导邮箱不能为空');
+        }
+        if (!data.tech_center_leader) {
+            errors.push('部门分管领导不能为空');
+        }
+        if (!data.leader_email) {
+            errors.push('分管领导邮箱不能为空');
+        }
+        if (!data.projects) {
+            errors.push('负责项目不能空');
+        }
+        return errors;
+    }
+});
+
+</script>
+
+<!-- 样式部分 -->
+<style>
+    .container[data-aos="fade-up"] {
+        max-width: 1800px;
+    }
+
+    #custom-table {
+        width: 130%; /* 将表格宽度增加20% */
+    }
+
+    .card {
+        max-height: 750px; /* 保持表格容器的最大高度 */
+        overflow-y: auto;
+    }
+     /* 搜索框宽度缩小一半 */
+    #search-input {
+        width: 12.5%; /* 原来的25%，现在缩小为一半 */
+    }
+</style>
+{% endblock %}

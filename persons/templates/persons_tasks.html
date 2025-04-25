@@ -1,0 +1,783 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load tz %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/offices_banner.png' %});">
+        <div class="container-fluid position-relative">
+            <h1>{{ page_title }}</h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a href="/">首页</a></li>
+                    <li class="current"><a href={% url 'persons:persons_tasks' %}>人员管理  /  </a>{{ page_title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div><!-- End Page Title -->
+
+    <!-- Starter Section Section -->
+    <section id="starter-section" class="starter-section section">
+        <!-- 插入控件和图表 -->
+        <div class="container-fluid" data-aos="fade-up">
+
+            <!-- 控件部分卡片 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <!-- 这里是你的控件部分 -->
+                        <!-- 按年查看筛选 -->
+                        <div class="col-md-auto">
+                            <label for="yearSelect" class="form-label">任务统计：</label>
+
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="viewOption" id="yearView" />
+                                <label class="form-check-label" for="yearView">按年查看</label>
+                            </div>
+
+                            <select id="yearSelect" class="form-select form-select-sm d-inline-block">
+                                {% for year in task_years %}
+                                    <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <!-- 按月查看筛选 -->
+                        <div class="col-md-auto">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="viewOption" id="monthView" />
+                                <label class="form-check-label" for="monthView">按月查看</label>
+                            </div>
+                            <select id="monthSelect" class="form-select form-select-sm d-inline-block">
+                                {% for month in task_months %}
+                                    <option value="{{ month }}" {% if month == selected_month %}selected{% endif %}>{{ month }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-auto">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="viewOption" id="weekView" />
+                                <label class="form-check-label" for="weekView">按周查看</label>
+                            </div>
+                            <select id="weekSelect" class="form-select form-select-sm d-inline-block">
+                                {% for week in task_weeks %}
+                                    <option value="{{ week }}" {% if week == selected_week %}selected{% endif %}>{{ week }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-auto">
+                            <label for="dateSelect" class="form-label">按日查看：</label>
+                            <input type="date" id="dateSelect" class="form-control form-control-sm d-inline-block" value="{% now 'Y-m-d' %}">
+                        </div>
+
+                        <div class="col-md-auto">
+                            <label class="form-label task-total-label">任务总数：{{ total_tasks }}个</label>
+                        </div>
+
+                        <!-- 邮件发布按钮，放置在最右边 -->
+                        <div class="col-md-auto" style="margin-left: 20%;">  <!-- 你可以调整这个数值 -->
+                            <button class="btn btn-light btn-sm text-dark btn-custom">
+                                <img src="{% static 'images/persons/邮件推送.png' %}" alt="邮件图标" class="icon-custom"> 邮件发布
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表部分 -->
+            <div class="row">
+                <!-- 保留原有的图表卡片 -->
+                <div class="col-md-9">
+                    <div class="card mb-4">
+                        <div class="card-body p-0" style="height: 400px;">
+                            <div class="skills-charts" style="height: 100%; width: 100%;">
+                                {% include 'bar-task1.html' %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card mb-4">
+                        <div class="card-body p-0" style="height: 400px;">
+                            <div class="skills-gauge" style="height: 100%; width: 100%;">
+                                {% include 'pie-task1.html' %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 添加新增任务按钮和搜索框 -->
+            <div class="d-flex justify-content-between mb-3">
+                {% if user_has_permission %}
+                    <button id="add-row" class="btn btn-primary btn-sm" style="min-width: 90px;">新增任务</button>
+                {% endif %}
+                <input type="text" id="search-input" class="form-control form-control-sm" style="max-width: 200px;" placeholder="搜索...">
+            </div>
+
+            <!-- 表格部分 -->
+            <div class="card card-expanded-height">
+                <div class="card-body p-0">
+                    <div class="table-responsive scrollable-table">
+                        <table id="task-table" class="table table-bordered table-striped mb-0 resizable-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 3%; text-align: center;">序号</th>
+                                    <th style="width: 6%; text-align: center;">任务单号</th>
+                                    <th style="width: 5%; text-align: center;">项目代号</th>
+                                    <th style="width: 10%; text-align: center;">样品编号</th>
+                                    <th style="width: 8%; text-align: center;">试验内容</th>
+                                    <th style="width: 14%; text-align: center;">试验大纲</th>
+                                    <th style="width: 6%; text-align: center;">设备编号</th>
+                                    <th style="width: 5%; text-align: center;">任务状态</th>
+                                    <th style="width: 5%; text-align: center;">开始日期</th>
+                                    <th style="width: 5%; text-align: center;">委托人</th>
+                                    <th style="width: 5%; text-align: center;">试验人员</th>
+                                    <th style="width: 5%; text-align: center;">工作进度</th>
+                                    <th style="width: 17%; text-align: center;">备注</th>
+                                    {% if user_has_permission %}
+                                    <th style="width: 8%; text-align: center;">操作</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>{{ task.task_id }}</td>
+                                    <td>{{ task.project }}</td>
+                                    <td>{{ task.sample_id }}</td>
+                                    <td>{{ task.test_content }}</td>
+                                    <td>{{ task.outline }}</td>
+                                    <td>{{ task.equipment_id }}</td>
+                                    <td>{{ task.task_status }}</td>
+                                    <td>{{ task.task_date|date:"Y-m-d" }}</td>
+                                    <td>{{ task.client }}</td>
+                                    <td>
+                                        {% if task.experimenter %}
+                                            {{ task.experimenter }}
+                                        {% else %}
+                                            未指定
+                                        {% endif %}
+                                    </td>
+                                    <td contenteditable="true">{{ task.schedule }}</td>
+                                    <td>{{ task.remark }}</td>
+                                    {% if user_has_permission %}
+                                    <td>
+                                        <button class="btn btn-sm btn-info edit-btn">编辑</button>
+                                        <button class="btn btn-sm btn-danger delete-btn">删除</button>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </section><!-- /Starter Section Section -->
+
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM fully loaded and parsed');
+
+        // 获取 CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        // 用于通过AJAX发送筛选条件并获取更新后的数据
+        function fetchFilteredData(params) {
+            $.ajax({
+                url: "{% url 'persons:persons_tasks' %}",  // 后端处理视图的 URL
+                type: "GET",  // 使用 GET 方法
+                data: params,  // 传递筛选条件
+                headers: {
+                    'X-CSRFToken': csrftoken  // 加上这个
+                },
+                success: function (response) {
+                    // 更新任务表格部分
+                    $('#task-table tbody').html($(response.html_task_table).find('tbody').html());
+
+                    // 更新任务总数
+                    $('.task-total-label').text('任务总数：' + response.total_tasks + '个');
+
+                    // 更新图表部分
+                    updateCharts(response.chart_data);
+                },
+                error: function (xhr, status, error) {
+                    console.error('Error fetching filtered data:', error);
+                }
+            });
+        }
+
+        // 更新图表
+        function updateCharts(chartData) {
+            // 获取 bar-task1 的 DOM 元素
+            var barContainer = document.getElementById('bar-container');
+            var pieContainer = document.getElementById('pie-container');
+
+            // 检查容器大小是否正确
+            if (!barContainer || barContainer.offsetWidth === 0 || barContainer.offsetHeight === 0) {
+                console.error("Bar chart container has zero size or is not found");
+                return;
+            }
+            if (!pieContainer || pieContainer.offsetWidth === 0 || pieContainer.offsetHeight === 0) {
+                console.error("Pie chart container has zero size or is not found");
+                return;
+            }
+
+            // 初始化或获取 barChart 和 pieChart 实例
+            var barChart = echarts.getInstanceByDom(barContainer);
+            if (!barChart) {
+                console.log("Initializing bar chart...");
+                barChart = echarts.init(barContainer);
+            }
+
+            var pieChart = echarts.getInstanceByDom(pieContainer);
+            if (!pieChart) {
+                console.log("Initializing pie chart...");
+                pieChart = echarts.init(pieContainer);
+            }
+
+            // 确保 chartData 是有效的
+            if (!chartData || !Array.isArray(chartData.experimenters) || !Array.isArray(chartData['装调']) ||
+                !Array.isArray(chartData['运行']) || !Array.isArray(chartData['排查']) || !Array.isArray(chartData['暂停'])) {
+                console.error("Invalid chart data", chartData);
+                return;
+            }
+
+            // 检查 chartData 内容是否有空值
+            if (chartData.experimenters.length === 0 || chartData['装调'].length === 0 ||
+                chartData['运行'].length === 0 || chartData['排查'].length === 0 || chartData['暂停'].length === 0) {
+                console.error("Chart data arrays are empty", chartData);
+                return;
+            }
+
+            // 输出调试信息
+            console.log("Updating bar chart with data:", chartData);
+
+            // 设置完整的图表配置，确保 legend 和 toolbox 被正确保留
+            var option = {
+                title: {
+                    text: '人员负荷',
+                    subtext: '每日任务量'
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: ['装调', '运行', '排查'],
+                    left: 'center',
+                    {#top: 'bottom'  // 图例放置在底部#}
+                },
+                toolbox: {
+                    show: true,
+                    orient: 'horizontal',  // 水平布局工具栏
+                    itemSize: 20,  // 工具栏图标大小
+                    left: 'right',  // 工具栏放置在右上角
+                    top: 'top',  // 工具栏靠近顶部
+                    feature: {
+                        dataView: { show: true, readOnly: false },
+                        magicType: { show: true, type: ['line', 'bar'] },
+                        restore: { show: true },
+                        saveAsImage: { show: true }
+                    }
+                },
+                grid: {
+                    top: '15%',  // 保留顶部空间
+                    left: '3%',
+                    right: '4%',
+                    bottom: '15%'  // 保留底部空间
+                },
+                xAxis: {
+                    type: 'category',
+                    data: chartData.experimenters  // 动态数据
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [
+                    {
+                        name: '装调',
+                        type: 'bar',
+                        data: chartData['装调'],  // 动态数据
+                        markPoint: {
+                            data: [
+                                { type: 'max', name: 'Max' },
+                                { type: 'min', name: 'Min' }
+                            ]
+                        },
+                        markLine: {
+                            data: [{ type: 'average', name: 'Avg' }]
+                        }
+                    },
+                    {
+                        name: '运行',
+                        type: 'bar',
+                        data: chartData['运行'],  // 动态数据
+                        markPoint: {
+                            data: [
+                                { type: 'max', name: 'Max' },
+                                { type: 'min', name: 'Min' }
+                            ]
+                        },
+                        markLine: {
+                            data: [{ type: 'average', name: 'Avg' }]
+                        }
+                    },
+                    {
+                        name: '排查',
+                        type: 'bar',
+                        data: chartData['排查'],  // 动态数据
+                        markPoint: {
+                            data: [
+                                { type: 'max', name: 'Max' },
+                                { type: 'min', name: 'Min' }
+                            ]
+                        },
+                        markLine: {
+                            data: [{ type: 'average', name: 'Avg' }]
+                        }
+                    }
+                ]
+            };
+
+            // 重新设置图表的选项，确保图例和工具栏不会丢失
+            barChart.setOption(option, true);
+            // 强制更新图表以清除旧数据
+            var myChart = echarts.init(document.getElementById('bar-container'));
+            myChart.setOption(option, true);  // 强制更新
+
+            // 输出调试信息
+            console.log("Updating pie chart with data:", chartData);
+
+            // 更新 pie-task1.html 中的饼图
+            pieChart.setOption({
+                series: [{
+                    type: 'pie',  // 确保 series 类型为 'pie'
+                    data: [
+                        { value: chartData['装调'].reduce((a, b) => a + b, 0), name: '装调' },
+                        { value: chartData['运行'].reduce((a, b) => a + b, 0), name: '运行' },
+                        { value: chartData['排查'].reduce((a, b) => a + b, 0), name: '排查' },
+                        { value: chartData['暂停'].reduce((a, b) => a + b, 0), name: '暂停' }
+                    ]
+                }]
+            });
+
+            // 调整图表大小（如果窗口大小变化或容器大小变化）
+            {#barChart.resize();#}
+            {#pieChart.resize();#}
+        }
+
+        // 年份选择
+        document.getElementById('yearView').addEventListener('change', function() {
+            if (this.checked) {
+                var currentYear = new Date().getFullYear();
+                document.getElementById('yearSelect').value = currentYear;
+                fetchFilteredData({ year: currentYear });
+            }
+        });
+
+        document.getElementById('yearSelect').addEventListener('change', function () {
+            document.getElementById('yearView').checked = true;
+            fetchFilteredData({ year: this.value });
+        });
+
+        // 月份选择
+        document.getElementById('monthView').addEventListener('change', function() {
+            if (this.checked) {
+                var currentDate = new Date();
+                var currentYear = currentDate.getFullYear();
+                var currentMonth = currentDate.getMonth() + 1;
+                document.getElementById('yearSelect').value = currentYear;
+                document.getElementById('monthSelect').value = currentMonth;
+                fetchFilteredData({ year: currentYear, month: currentMonth });
+            }
+        });
+
+        document.getElementById('monthSelect').addEventListener('change', function () {
+            document.getElementById('monthView').checked = true;
+            var selectedYear = document.getElementById('yearSelect').value;
+            fetchFilteredData({ year: selectedYear, month: this.value });
+        });
+
+        // 周选择
+        document.getElementById('weekView').addEventListener('change', function() {
+            if (this.checked) {
+                var currentDate = new Date();
+                var currentYear = currentDate.getFullYear();
+                var currentWeek = getWeekNumber(currentDate);
+                
+                document.getElementById('yearSelect').value = currentYear;
+                document.getElementById('weekSelect').value = currentWeek;
+                
+                // 确保发送正确的周数
+                fetchFilteredData({
+                    year: currentYear,
+                    week: currentWeek
+                });
+            }
+        });
+
+        document.getElementById('weekSelect').addEventListener('change', function () {
+            document.getElementById('weekView').checked = true;
+            var selectedYear = document.getElementById('yearSelect').value;
+            // 确保发送正确的周数
+            fetchFilteredData({
+                year: selectedYear,
+                week: this.value
+            });
+        });
+
+        // 日期选择
+        document.getElementById('dateSelect').addEventListener('change', function () {
+            document.getElementById('yearView').checked = false;
+            document.getElementById('monthView').checked = false;
+            document.getElementById('weekView').checked = false;
+            fetchFilteredData({ date: this.value });
+        });
+
+        // 获取当前周数的辅助函数
+        function getWeekNumber(d) {
+            // Copy date so don't modify original
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            // Set to nearest Thursday: current date + 4 - current day number
+            // Make Sunday's day number 7
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            // Get first day of year
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            // Calculate full weeks to nearest Thursday
+            var weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+            return weekNo;
+        }
+
+        // 添加事件监听器，当用户点击年份、月份、周或者日期的下拉框时，自动选择对应的单选框
+        document.getElementById('yearSelect').addEventListener('focus', function () {
+            document.getElementById('yearView').checked = true;
+            document.getElementById('monthView').checked = false;
+            document.getElementById('weekView').checked = false;
+        });
+
+        document.getElementById('monthSelect').addEventListener('focus', function () {
+            document.getElementById('monthView').checked = true;
+            document.getElementById('yearView').checked = false;
+            document.getElementById('weekView').checked = false;
+        });
+
+        document.getElementById('weekSelect').addEventListener('focus', function () {
+            document.getElementById('weekView').checked = true;
+            document.getElementById('yearView').checked = false;
+            document.getElementById('monthView').checked = false;
+        });
+
+        document.getElementById('dateSelect').addEventListener('focus', function () {
+            document.getElementById('weekView').checked = false;
+            document.getElementById('yearView').checked = false;
+            document.getElementById('monthView').checked = false;
+        });
+
+
+
+        // 阻止页面滚动事件，当光标在表格区域时
+        let scrollableTable = document.querySelector('.scrollable-table');
+
+        scrollableTable.addEventListener('mouseenter', function () {
+            document.body.style.overflow = 'hidden';  // 禁止页面滚动
+        });
+
+        scrollableTable.addEventListener('mouseleave', function () {
+            document.body.style.overflow = '';  // 恢复页面滚动
+        });
+        // 搜索功能
+        document.getElementById('search-input').addEventListener('keyup', function () {
+            let searchValue = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#task-table tbody tr');
+            rows.forEach(row => {
+                let cells = Array.from(row.cells).map(cell => cell.innerText.toLowerCase());
+                let match = cells.some(cellText => cellText.includes(searchValue));
+                row.style.display = match ? '' : 'none';
+            });
+        });
+
+        // 添加行
+        document.getElementById('add-row').addEventListener('click', function () {
+            let table = document.getElementById('task-table').getElementsByTagName('tbody')[0];
+            let newRow = table.insertRow();
+            newRow.innerHTML = `
+                <td contenteditable="true"></td>     <!-- 0 序号 -->
+                <td contenteditable="true"></td>     <!-- 1 任务单号 -->
+                <td contenteditable="true"></td>     <!-- 2 项目代号 -->
+                <td contenteditable="true"></td>     <!-- 3 样品编号 -->
+                <td contenteditable="true"></td>     <!-- 4 试验内容 -->
+                <td contenteditable="true"></td>     <!-- 5 试验大纲 -->
+                <td contenteditable="true"></td>     <!-- 6 设备编号 -->
+                <td>
+                    <select class="table-select">
+                        <option value="样件装调">样件装调</option>
+                        <option value="样件运行">样件运行</option>
+                        <option value="样件排查">样件排查</option>
+                        <option value="设备排查">设备排查</option>
+                        <option value="任务暂停">任务暂停</option>
+                        <option value="已完成">已完成</option>
+                    </select>
+                </td> <!-- 7 任务状态 -->
+                <td><input type="date" class="table-select"></td>  <!-- 8 任务日期 -->
+                <td contenteditable="true"></td>     <!-- 9 委托人 -->
+                <td>
+                    <select class="person-select">
+                        {% for person in persons %}
+                            <option value="{{ person.name }}">{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>    <!-- 10 试验人员 -->
+                <td contenteditable="true"></td>    <!-- 11 工作进度 -->
+                <td contenteditable="true"></td>     <!-- 12 备注 -->
+                <td>
+                    <button class="btn btn-sm btn-success save-btn">保存</button>
+                    <button class="btn btn-sm btn-secondary cancel-btn">取消</button>
+                </td>`;
+            console.log('New row added');
+        });
+
+        // 编辑、保存、删除、取消行
+        document.getElementById('task-table').addEventListener('click', function (event) {
+            let target = event.target;
+
+            // 编辑行
+            if (target.classList.contains('edit-btn')) {
+                let row = target.closest('tr');
+                row.querySelectorAll('td').forEach((cell, index) => {
+                    if (index !== 0 && index !== 11 && index !== 13) { // Skip the first cell and action buttons
+                        if (index === 7) { // 任务状态列
+                            let currentValue = cell.innerText.trim();
+                            cell.innerHTML = `
+                                <select class="table-select">
+                                    <option value="样件装调" ${currentValue === '样件装调' ? 'selected' : ''}>样件装调</option>
+                                    <option value="样件运行" ${currentValue === '样件运行' ? 'selected' : ''}>样件运行</option>
+                                    <option value="样件排查" ${currentValue === '样件排查' ? 'selected' : ''}>样件排查</option>
+                                    <option value="设备排查" ${currentValue === '设备排查' ? 'selected' : ''}>设备排查</option>
+                                    <option value="任务暂停" ${currentValue === '任务暂停' ? 'selected' : ''}>任务暂停</option>
+                                    <option value="已完成" ${currentValue === '已完成' ? 'selected' : ''}>已完成</option>
+                                </select>`;
+                        } else if (index === 10) { // 试验人员列
+                            let currentValue = cell.innerText.trim();
+                            cell.innerHTML = `
+                                <select class="person-select">
+                                    {% for person in persons %}
+                                        <option value="{{ person.name }}" ${currentValue === '{{ person.name }}' ? 'selected' : ''}>{{ person.name }}</option>
+                                    {% endfor %}
+                                </select>`;
+                        } else {
+                            cell.contentEditable = true;
+                        }
+                    }
+                });
+
+                let taskDateCell = row.cells[8];
+                let dateValue = taskDateCell.textContent.trim();
+                taskDateCell.innerHTML = `<input type="date" class="table-select" value="${dateValue}">`; // Convert date cell to input field
+                target.textContent = '保存';
+                target.classList.remove('edit-btn');
+                target.classList.add('save-btn');
+
+            } else if (target.classList.contains('save-btn')) {
+                let row = target.closest('tr');
+
+                // 检查第7列是否有<select>元素
+                let taskStatusSelect = row.cells[7].querySelector('select');
+                let taskStatusValue = taskStatusSelect ? taskStatusSelect.value.trim() : row.cells[7].innerText.trim();
+
+                // 检查第10列是否有<select>元素
+                let experimenterSelect = row.cells[10].querySelector('select');
+                let experimenterValue = experimenterSelect ? experimenterSelect.value.trim() : row.cells[10].innerText.trim();
+
+                let data = {
+                    task_id: row.cells[1].innerText.trim(),
+                    task_status: taskStatusValue,  // 如果有<select>则取其值，否则取单元格文本
+                    project: row.cells[2].innerText.trim(),
+                    sample_id: row.cells[3].innerText.trim(),
+                    test_content: row.cells[4].innerText.trim(),
+                    outline: row.cells[5].innerText.trim(),
+                    equipment_id: row.cells[6].innerText.trim(),
+                    task_date: row.cells[8].querySelector('input').value.trim(),  // 从输入框获取任务日期
+                    client: row.cells[9].innerText.trim(),
+                    experimenter: experimenterValue, // 如果有<select>则取其值，否则取单元格文本
+                    schedule: row.cells[11].innerText.trim(),
+                    remark: row.cells[12].innerText.trim()
+                };
+
+                // 验证数据格式
+                if (!data.task_id || !data.project || !data.sample_id) {
+                    alert('请填写完整的任务信息');
+                    return;
+                }
+
+                // 发送保存请求到后端
+                $.ajax({
+                    url: "{% url 'persons:save_task' %}",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        console.log('保存成功', response);
+                        row.querySelectorAll('td').forEach((cell, index) => {
+                            if (index !== 0 && index !== 10 && index !== 11 && index !== 13) { // Skip the first cell and action buttons
+                                cell.contentEditable = false;
+                            }
+                        });
+                        // 恢复任务状态列和试验人员列为普通文本
+                        row.cells[7].innerHTML = taskStatusValue;  // 将任务状态从<select>恢复为文本
+                        row.cells[10].innerHTML = experimenterValue;  // 将试验人员从<select>恢复为文本
+
+                        let taskDateCell = row.cells[8];
+                        let dateValue = taskDateCell.querySelector('input').value;
+                        taskDateCell.innerHTML = dateValue; // Convert input field back to text
+                        let experimenterCell = row.cells[10];
+                        experimenterCell.innerHTML = experimenterValue; // Convert select back to text
+                        target.textContent = '编辑';
+                        target.classList.remove('save-btn');
+                        target.classList.add('edit-btn');
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('保存失败', status, error);
+                        alert('保存失败');
+                    }
+                });
+            } else if (target.classList.contains('delete-btn')) {
+                let row = target.closest('tr');
+                let task_id = row.cells[1].innerText.trim(); // 获取任务单号
+
+                if (confirm('你确定要删除此任务吗？')) {
+                    $.ajax({
+                        url: "{% url 'persons:delete_task' %}",
+                        method: "POST",
+                        data: {
+                            task_id: task_id, // 传递任务单号
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        success: function (response) {
+                            console.log('删除成功', response);
+                            row.remove();
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('删除失败', status, error);
+                            alert('删除失败');
+                        }
+                    });
+                }
+            } else if (target.classList.contains('cancel-btn')) {
+                let row = target.closest('tr');
+                row.remove();
+                console.log('New row canceled');
+            }
+        });
+        // 页面加载时绑定一次事件
+        bindRowEvents();
+    });
+
+</script>
+
+<style>
+    .btn-custom {
+        border: 1px solid black;
+    }
+    .form-select-sm,
+    .form-control-sm {
+        width: auto;
+    }
+    .icon-custom {
+        height: 20px;
+        margin-right: 5px;
+    }
+    .scrollable-table {
+        max-height: 300px; /* 保持300px的高度 */
+        overflow-y: auto;
+    }
+
+    /* 让表格的滚动条更加明显 */
+    .scrollable-table::-webkit-scrollbar {
+        width: 8px;
+    }
+    .scrollable-table::-webkit-scrollbar-thumb {
+        background-color: #888;
+    }
+    .scrollable-table::-webkit-scrollbar-thumb:hover {
+        background-color: #555;
+    }
+    .scrollable-table thead th {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 2;
+        text-align: center; /* 表头内容左右居中对齐 */
+    }
+    .table-select {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        background-color: transparent;
+        font-size: inherit; /* 继承表格的字体大小 */
+        line-height: inherit; /* 继承表格的行高 */
+        font-family: inherit; /* 继承表格的字体 */
+        text-align-last: center; /* 下拉框内容居中对齐 */
+    }
+    .table td {
+        padding: 0 !important;
+        vertical-align: middle; /* 表格内容上下居中对齐 */
+    }
+    .table td:not(:nth-child(6)):not(:nth-child(13)) {
+        text-align: center; /* 除试验大纲和备注列外，所有列左右居中对齐 */
+    }
+    .card-expanded-height {
+        height: 200%; /* 将卡片高度增加到原来的两倍 */
+    }
+    .person-select {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    font-size: inherit;  /* 继承表格的字体大小 */
+    line-height: inherit;  /* 继承表格的行高 */
+    font-family: inherit;  /* 继承表格的字体 */
+    text-align-last: center;  /* 下拉框内容居中对齐 */
+}
+
+    .task-total-label {
+    font-weight: bold;
+    color: #f0ab56;
+    font-size: 1.5em;
+}
+
+</style>
+
+{% endblock %}

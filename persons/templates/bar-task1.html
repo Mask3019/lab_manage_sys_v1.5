@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title }}</title>
+</head>
+<body style="height: 100%; margin: 0">
+
+
+  <!-- ECharts 图表容器 -->
+  <div id="bar-container" style="height: 400px; width: 100%"></div>
+
+  <!-- 引入 ECharts 库 -->
+  <script type="text/javascript" src="https://registry.npmmirror.com/echarts/5.5.1/files/dist/echarts.min.js"></script>
+
+  <script type="text/javascript">
+    // 从Django传递过来的JSON图表数据，确保数据格式正确
+    var chartData = JSON.parse('{{ chart_data|safe }}');  // 使用safe过滤器，防止转义
+
+    // 打印调试，查看数据是否正确传递
+    console.log(chartData);
+
+    // 初始化 ECharts 实例
+    var dom = document.getElementById('bar-container');
+    var myChart = echarts.init(dom, null, {
+      renderer: 'canvas',
+      useDirtyRect: false
+    });
+
+    var option = {
+      title: {
+        text: '人员负荷',
+        subtext: '每日任务量'
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      legend: {
+        data: ['装调', '运行', '排查']
+      },
+      toolbox: {
+        show: true,
+        feature: {
+          dataView: { show: true, readOnly: false },
+          magicType: { show: true, type: ['line', 'bar'] },
+          restore: { show: true },
+          saveAsImage: { show: true }
+        }
+      },
+      calculable: true,
+      xAxis: [
+        {
+          type: 'category',
+          data: chartData.experimenters  // 使用动态数据作为横坐标
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value'
+        }
+      ],
+      series: [
+        {
+          name: '装调',
+          type: 'bar',
+          data: chartData['装调'],  // 动态数据
+          markPoint: {
+            data: [
+              { type: 'max', name: 'Max' },
+              { type: 'min', name: 'Min' }
+            ]
+          },
+          markLine: {
+            data: [{ type: 'average', name: 'Avg' }]
+          }
+        },
+        {
+          name: '运行',
+          type: 'bar',
+          data: chartData['运行'],  // 动态数据
+          markPoint: {
+            data: [
+              { type: 'max', name: 'Max' },
+              { type: 'min', name: 'Min' }
+            ]
+          },
+          markLine: {
+            data: [{ type: 'average', name: 'Avg' }]
+          }
+        },
+        {
+          name: '排查',
+          type: 'bar',
+          data: chartData['排查'],  // 动态数据
+          markPoint: {
+            data: [
+              { type: 'max', name: 'Max' },
+              { type: 'min', name: 'Min' }
+            ]
+          },
+          markLine: {
+            data: [{ type: 'average', name: 'Avg' }]
+          }
+        }
+      ]
+    };
+
+    // 使用定义好的配置项显示图表
+    if (option && typeof option === 'object') {
+      myChart.setOption(option);
+    }
+
+    // 响应窗口大小调整
+    window.addEventListener('resize', myChart.resize);
+  </script>
+</body>
+</html>

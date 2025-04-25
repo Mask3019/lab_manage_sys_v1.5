@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="height: 100%; margin: 0">
+  <div id="pie-container" style="height: 100%"></div>
+
+  <script type="text/javascript" src="https://registry.npmmirror.com/echarts/5.5.1/files/dist/echarts.min.js"></script>
+
+  <script type="text/javascript">
+    var dom = document.getElementById('pie-container');
+    var myChart = echarts.init(dom, null, {
+      renderer: 'canvas',
+      useDirtyRect: false
+    });
+    var app = {};
+
+    var option;
+
+    // 从 Django 传递过来的 chart_data，确保它是正确的 JSON 格式
+    var chartData = JSON.parse('{{ chart_data|safe }}');  // 从 views.py 获取动态数据
+
+    // 使用 chartData 来设置饼图数据
+    option = {
+      tooltip: {
+        trigger: 'item',
+        formatter: function (params) {
+          return `${params.seriesName} <br/>${params.name}: ${params.value} (${Math.round(params.percent)}%)`;
+        } // 显示名称、数值和整数百分比
+      },
+      legend: {
+        top: '5%',
+        left: 'center'
+      },
+      series: [
+        {
+          name: '任务内容',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          avoidLabelOverlap: false,
+          padAngle: 5,
+          itemStyle: {
+            borderRadius: 10
+          },
+          label: {
+            show: true,
+            position: 'inside', // 标签显示在饼图块内
+            formatter: function (params) {
+              return `${Math.round(params.percent)}%`;
+            }, // 标签上显示整数百分比
+            color: '#ffffff', // 标签字体颜色为白色
+            fontWeight: 'bold', // 标签字体加粗
+            fontSize: 14 // 可根据需要调整字体大小
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 40,
+              fontWeight: 'bold'
+            }
+          },
+          labelLine: {
+            show: false // 去掉引导线
+          },
+          // 使用 Django 传递的动态数据
+          data: [
+            { value: chartData['装调'].reduce((a, b) => a + b, 0), name: '装调' },
+            { value: chartData['运行'].reduce((a, b) => a + b, 0), name: '运行' },
+            { value: chartData['排查'].reduce((a, b) => a + b, 0), name: '排查' },
+            { value: chartData['暂停'].reduce((a, b) => a + b, 0), name: '暂停' },
+          ]
+        }
+      ]
+    };
+
+    if (option && typeof option === 'object') {
+      myChart.setOption(option);
+    }
+
+    window.addEventListener('resize', myChart.resize);
+  </script>
+</body>
+</html>

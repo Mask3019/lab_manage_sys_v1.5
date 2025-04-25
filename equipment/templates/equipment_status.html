@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/info_banner.png' %});">
+      <div class="container-fluid position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href="{% url 'equipment:equipment_status' %}">设备管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Filter Section -->
+    <section id="filter-section" class="filter-section section">
+      <div class="container-fluid" data-aos="fade-up">
+        <div class="row">
+          <!-- Filter Form on the left -->
+          <div class="col-md-2">
+            <div class="card">
+              <div class="card-body">
+                <form method="GET" action="{% url 'equipment:equipment_status' %}">
+                  <div class="form-group mb-4">
+                    <label for="equipment_status">设备状态</label>
+                    <select name="equipment_status" class="form-control">
+                      <option value="" {% if not request.GET.equipment_status %}selected{% endif %}>所有状态</option>
+                      <option value="试验运行" {% if request.GET.equipment_status == '试验运行' %}selected{% endif %}>试验运行</option>
+                      <option value="设备故障" {% if request.GET.equipment_status == '设备故障' %}selected{% endif %}>设备故障</option>
+                      <option value="样件故障" {% if request.GET.equipment_status == '样件故障' %}selected{% endif %}>样件故障</option>
+                      <option value="设备闲置" {% if request.GET.equipment_status == '设备闲置' %}selected{% endif %}>设备闲置</option>
+                    </select>
+                  </div>
+                  <div class="form-group mb-4">
+                    <label for="region">区域</label>
+                    <select name="region" class="form-control">
+                      <option value="" {% if not request.GET.region %}selected{% endif %}>所有区域</option>
+                      <option value="A区" {% if request.GET.region == 'A区' %}selected{% endif %}>A区</option>
+                      <option value="B区" {% if request.GET.region == 'B区' %}selected{% endif %}>B区</option>
+                      <option value="C区" {% if request.GET.region == 'C区' %}selected{% endif %}>C区</option>
+                      <option value="D区" {% if request.GET.region == 'D区' %}selected{% endif %}>D区</option>
+                      <option value="其他" {% if request.GET.region == '其他' %}selected{% endif %}>其他</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn btn-primary">筛选</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Combined equipment cards on the right -->
+          <div class="col-md-10">
+{#            <h2>设备状态</h2>#}
+
+            <div class="card">
+              <div class="card-body combined-card-body">
+                <!-- For scrolling effect -->
+                {% for region_name, devices in region_device_items %}
+                  {% if devices %}
+                    <div class="region-section">
+                      <h4 class="region-title">{{ region_name }}</h4>
+                      <div class="row">
+                        {% for device in devices %}
+                          <div class="col-md-3 mb-4">
+                            <div class="card equipment-status-{{ device.equipment_status|lower }}">
+                              <div class="card-header text-white font-weight-bold equipment-status-header-{{ device.equipment_status|lower }}">
+                                {{ device.equipment_id }} - {{ device.equipment_status }}
+                              </div>
+                              <div class="card-body equipment-status-card-body">
+                                <p><strong>设备名称：</strong> {{ device.name }}</p>
+                                <p><strong>设备负责人：</strong> {{ device.responsible_person }}</p>
+                                <p><strong>设备类型：</strong> {{ device.type }}</p>
+                                <p><strong>使用频率：</strong> {{ device.usage_frequency }}</p>
+                                <p><strong>状态详情：</strong> {{ device.remark }}</p>
+                              </div>
+                            </div>
+                          </div>
+                          {% if forloop.counter|divisibleby:4 %}
+                            </div><div class="row">
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section><!-- End Filter Section -->
+
+</main>
+
+  <style>
+    .equipment-status-试验运行 .card-header {
+      background-color: #28a745; /* 绿色背景 */
+    }
+    .equipment-status-样件故障 .card-header {
+      background-color: #ffc107; /* 黄色背景 */
+    }
+    .equipment-status-设备故障 .card-header {
+      background-color: #dc3545; /* 红色背景 */
+    }
+    .equipment-status-设备闲置 .card-header {
+      background-color: #6c757d; /* 灰色背景 */
+    }
+
+    /* 组合的卡片高度设置，支持滚动 */
+    .combined-card-body {
+      max-height: 600px; /* 根据需要调整高度 */
+      overflow-y: hidden;
+    }
+    .combined-card-body:hover {
+      overflow-y: auto;
+    }
+
+    /* 区域标题样式 */
+    .region-title {
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    /* 设备状态卡片固定高度，显示 6 行内容 */
+    .equipment-status-card-body {
+      min-height: 200px;  /* 调整为可容纳6行内容的高度 */
+      max-height: 200px;  /* 固定最大高度 */
+      overflow: hidden;   /* 超出内容隐藏 */
+    }
+
+    /* 如果内容不足 4 行，填充空白 */
+    .equipment-status-card-body p {
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;  /* 14px, 稍微小一点的字体 */
+    }
+    .equipment-status-card-body:after {
+      content: '';
+      display: block;
+      height: 100%;
+    }
+  </style>
+
+{% endblock %}

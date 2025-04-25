@@ -1,0 +1,138 @@
+<!-- approval_process.html -->
+
+<!-- 审批流程 -->
+{% if 'equipment.can_approve_area_leader' in user_permissions %}
+  {% with role='area_leader' %}
+    <!-- 区域领导审批 -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <!-- 审批意见 -->
+        <div class="form-group">
+          <label>区域主管审批:</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="{{ role }}_approval" id="{{ role }}_Agree" value="agree" {% if application.area_leader_approval == True %}checked{% endif %}>
+            <label class="form-check-label" for="{{ role }}_Agree">
+              同意
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="{{ role }}_approval" id="{{ role }}_Reject" value="reject" {% if application.area_leader_approval == False %}checked{% endif %}>
+            <label class="form-check-label" for="{{ role }}_Reject">
+              驳回
+            </label>
+          </div>
+        </div>
+        <!-- 驳回原因 -->
+        <div class="form-group" id="{{ role }}_RejectionReasonDiv" style="display: none;">
+          <label for="{{ role }}_rejection_reason">驳回原因:</label>
+          <textarea id="{{ role }}_rejection_reason" name="{{ role }}_rejection_reason" class="form-control" rows="2">{{ application.area_leader_rejection_reason }}</textarea>
+          <!-- 驳回给 -->
+          <label for="{{ role }}_rejected_to">驳回给:</label>
+          <select id="{{ role }}_rejected_to" name="{{ role }}_rejected_to" class="form-control">
+            {% for person in related_persons %}
+              <option value="{{ person.employee_id }}">{{ person.name }} - {{ person.employee_id }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  {% endwith %}
+
+{% elif 'equipment.can_approve_line_leader' in user_permissions %}
+  {% with role='line_leader' %}
+    <!-- 条线领导审批 -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <!-- 审批意见 -->
+        <div class="form-group">
+          <label>条线领导审批:</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="{{ role }}_approval" id="{{ role }}_Agree" value="agree" {% if application.line_leader_approval == True %}checked{% endif %}>
+            <label class="form-check-label" for="{{ role }}_Agree">
+              同意
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="{{ role }}_approval" id="{{ role }}_Reject" value="reject" {% if application.line_leader_approval == False %}checked{% endif %}>
+            <label class="form-check-label" for="{{ role }}_Reject">
+              驳回
+            </label>
+          </div>
+        </div>
+        <!-- 驳回原因 -->
+        <div class="form-group" id="{{ role }}_RejectionReasonDiv" style="display: none;">
+          <label for="{{ role }}_rejection_reason">驳回原因:</label>
+          <textarea id="{{ role }}_rejection_reason" name="{{ role }}_rejection_reason" class="form-control" rows="2">{{ application.line_leader_rejection_reason }}</textarea>
+          <!-- 驳回给 -->
+          <label for="{{ role }}_rejected_to">驳回给:</label>
+          <select id="{{ role }}_rejected_to" name="{{ role }}_rejected_to" class="form-control">
+            {% for person in related_persons %}
+              <option value="{{ person.employee_id }}">{{ person.name }} - {{ person.employee_id }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  {% endwith %}
+
+{% elif 'equipment.can_approve_device_manager' in user_permissions %}
+  {% with role='device_manager' %}
+    <!-- 设备管理员审批 -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <!-- 审批意见 -->
+        <div class="form-group">
+          <label>设备管理员审批:</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="{{ role }}_approval" id="{{ role }}_Agree" value="agree" {% if application.device_manager_approval == True %}checked{% endif %}>
+            <label class="form-check-label" for="{{ role }}_Agree">
+              同意
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="{{ role }}_approval" id="{{ role }}_Reject" value="reject" {% if application.device_manager_approval == False %}checked{% endif %}>
+            <label class="form-check-label" for="{{ role }}_Reject">
+              驳回
+            </label>
+          </div>
+        </div>
+        <!-- 驳回原因 -->
+        <div class="form-group" id="{{ role }}_RejectionReasonDiv" style="display: none;">
+          <label for="{{ role }}_rejection_reason">驳回原因:</label>
+          <textarea id="{{ role }}_rejection_reason" name="{{ role }}_rejection_reason" class="form-control" rows="2">{{ application.device_manager_rejection_reason }}</textarea>
+          <!-- 驳回给 -->
+          <label for="{{ role }}_rejected_to">驳回给:</label>
+          <select id="{{ role }}_rejected_to" name="{{ role }}_rejected_to" class="form-control">
+            {% for person in related_persons %}
+              <option value="{{ person.employee_id }}">{{ person.name }} - {{ person.employee_id }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  {% endwith %}
+
+{% else %}
+  <!-- 运行人员查看驳回原因 -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div id="rejectionReasons" class="mb-3">
+        {% if application.area_leader_rejection_reason %}
+          <div class="alert alert-warning">
+            <strong>区域主管驳回原因：</strong>{{ application.area_leader_rejection_reason }}
+          </div>
+        {% endif %}
+        {% if application.line_leader_rejection_reason %}
+          <div class="alert alert-warning">
+            <strong>条线领导驳回原因：</strong>{{ application.line_leader_rejection_reason }}
+          </div>
+        {% endif %}
+        {% if application.device_manager_rejection_reason %}
+          <div class="alert alert-warning">
+            <strong>设备管理员驳回原因：</strong>{{ application.device_manager_rejection_reason }}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endif %}

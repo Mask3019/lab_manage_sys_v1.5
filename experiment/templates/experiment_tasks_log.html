@@ -1,0 +1,1129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<!-- 添加jQuery和toastr库的依赖 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<!-- 初始化toastr -->
+<script>
+  // 确保jQuery和toastr正确加载
+  $(document).ready(function() {
+    console.log('jQuery已加载，正在初始化toastr');
+    if (typeof toastr !== 'undefined') {
+      toastr.options = {
+        "closeButton": true,
+        "progressBar": true,
+        "positionClass": "toast-top-right",
+        "showDuration": "300",
+        "hideDuration": "1000",
+        "timeOut": "5000",
+        "extendedTimeOut": "1000",
+        "showEasing": "swing",
+        "hideEasing": "linear",
+        "showMethod": "fadeIn",
+        "hideMethod": "fadeOut"
+      };
+      console.log('toastr初始化完成');
+    } else {
+      console.warn('警告：toastr未正确加载');
+    }
+  });
+
+  // 定义安全的toastr包装函数
+  window.safeToastr = {
+    success: function(message, title) {
+      if (typeof toastr !== 'undefined' && toastr) {
+        try {
+          toastr.success(message, title);
+        } catch (e) {
+          console.error('toastr.success错误:', e);
+          alert(message);
+        }
+      } else {
+        alert(message);
+      }
+    },
+    error: function(message, title) {
+      if (typeof toastr !== 'undefined' && toastr) {
+        try {
+          toastr.error(message, title);
+        } catch (e) {
+          console.error('toastr.error错误:', e);
+          alert(message);
+        }
+      } else {
+        alert(message);
+      }
+    },
+    info: function(message, title) {
+      if (typeof toastr !== 'undefined' && toastr) {
+        try {
+          toastr.info(message, title);
+        } catch (e) {
+          console.error('toastr.info错误:', e);
+          console.log(message);
+        }
+      } else {
+        console.log(message);
+      }
+    },
+    warning: function(message, title) {
+      if (typeof toastr !== 'undefined' && toastr) {
+        try {
+          toastr.warning(message, title);
+        } catch (e) {
+          console.error('toastr.warning错误:', e);
+          alert(message);
+        }
+      } else {
+        alert(message);
+      }
+    }
+  };
+</script>
+
+<!-- 在页面最开始处添加直接定义函数的脚本，确保先于所有元素加载 -->
+<script>
+// 在content块开头定义所有需要的函数，确保它们在DOM元素之前加载
+window.saveForm = function() {
+  console.log('开始提交表单');
+  
+  // 表单验证
+  const form = document.getElementById('log-form');
+  const requiredFields = form.querySelectorAll('[required]');
+  let isValid = true;
+  
+  // 移除之前的错误提示
+  form.querySelectorAll('.is-invalid').forEach(field => {
+    field.classList.remove('is-invalid');
+  });
+  form.querySelectorAll('.invalid-feedback').forEach(feedback => {
+    feedback.remove();
+  });
+  
+  // 检查每个必填字段
+  requiredFields.forEach(field => {
+    if (!field.value.trim()) {
+      isValid = false;
+      field.classList.add('is-invalid');
+      
+      // 创建错误提示
+      const feedback = document.createElement('div');
+      feedback.className = 'invalid-feedback';
+      feedback.textContent = '此字段不能为空';
+      field.parentNode.appendChild(feedback);
+    }
+  });
+  
+  // 如果验证失败，提前返回不提交
+  if (!isValid) {
+    window.safeToastr.error('请填写所有必填项再提交', '表单验证失败');
+    alert('请填写所有必填项再提交'); // 添加备用提示
+    return;
+  }
+  
+  // 显示加载状态
+  const saveBtn = document.getElementById('save-btn');
+  const originalBtnHtml = saveBtn.innerHTML;
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
+  
+  // 获取表单数据
+  const formData = new FormData(form);
+  
+  // 处理分析报告列表
+  const hiddenReportField = document.getElementById('hidden-analysis-report');
+  if (hiddenReportField && hiddenReportField.value) {
+    // 如果有隐藏字段的分析报告列表，把它添加到formData中
+    formData.append('analysis_report', hiddenReportField.value);
+  }
+  
+  // 发送异步请求，注意不要设置headers中的Content-Type，让浏览器自动设置
+  fetch("{% url 'experiment:save_experiment_log' %}", {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('网络响应异常：' + response.status);
+    }
+    return response.json();
+  })
+  .then(data => {
+    if (data.status === 'success') {
+      window.safeToastr.success(data.message, '保存成功');
+      alert(data.message || '保存成功'); // 添加备用提示
+      window.resetForm();
+      window.loadLogRecords();
+      // 重置未保存更改标记
+      window.formHasUnsavedChanges = false;
+      // 恢复保存按钮样式
+      if (saveBtn) {
+        saveBtn.classList.remove('btn-warning');
+        saveBtn.classList.add('btn-primary');
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存数据';
+      }
+    } else {
+      window.safeToastr.error(data.message || '未知错误', '保存失败');
+      alert('保存失败: ' + (data.message || '未知错误')); // 添加备用提示
+    }
+  })
+  .catch(error => {
+    console.error('保存过程发生错误:', error);
+    window.safeToastr.error('保存过程发生错误: ' + error.message, '系统错误');
+    alert('保存过程发生错误: ' + error.message); // 添加备用提示
+  })
+  .finally(() => {
+    // 恢复按钮状态
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = originalBtnHtml;
+  });
+};
+
+window.resetForm = function() {
+  console.log('开始重置表单');
+  
+  try {
+  const form = document.getElementById('log-form');
+    if (form) {
+      form.reset();
+      document.getElementById('log-id').value = '';
+      document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+      
+      // 清空文件上传控件
+      const fileInput = document.getElementById('analysis-report');
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
+      document.getElementById('delete-btn').classList.add('d-none');
+    } else {
+      alert('表单元素未找到，请刷新页面后重试');
+    }
+  } catch (error) {
+    alert('重置表单时发生错误: ' + error.message);
+  }
+};
+
+// 清空填写特定字段的函数
+window.clearFields = function() {
+  // 只清空特定字段：停止时长、报警现象、报警原因、解决办法、解决人、路径记录路径、分析报告
+  document.getElementById('stop-duration').value = ''; // 清空停止时长
+  document.getElementById('alarm-phenomenon').value = '';
+  document.getElementById('alarm-reason').value = '';
+  document.getElementById('solution').value = '';
+  document.getElementById('solver').value = '';
+  document.getElementById('data-path').value = '';
+  
+  // 清空分析报告文件输入
+  document.querySelector('input[name="analysis_report"]').value = ''; 
+  
+  // 设置当前日期为登记日期
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  document.getElementById('log-date').value = `${yyyy}-${mm}-${dd}`;
+  
+  // 清空分析报告相关信息
+  const reportInfoElement = document.querySelector('#analysis-report-info');
+  if (reportInfoElement) {
+    reportInfoElement.classList.add('d-none');
+    reportInfoElement.innerHTML = '';
+  }
+  
+  // 清空隐藏的分析报告字段
+  const hiddenReportField = document.getElementById('hidden-analysis-report');
+  if (hiddenReportField) {
+    hiddenReportField.value = '';
+  }
+  
+  // 重置表单验证状态
+  document.getElementById('log-form').querySelectorAll('.is-invalid').forEach(field => {
+    field.classList.remove('is-invalid');
+  });
+  document.getElementById('log-form').querySelectorAll('.invalid-feedback').forEach(feedback => {
+    feedback.remove();
+  });
+};
+
+// 删除记录函数
+window.deleteLog = function() {
+  const logId = document.getElementById('log-id').value;
+  if (!logId) {
+    alert('没有选择要删除的记录');
+    return;
+  }
+  
+  const deleteButton = document.getElementById('delete-btn');
+  deleteButton.disabled = true;
+  deleteButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 删除中...';
+  
+  const formData = new FormData();
+  formData.append('log_id', logId);
+  
+  // 获取CSRF令牌
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  
+  fetch('{% url "experiment:delete_experiment_log" %}', {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: formData
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('网络响应异常');
+    }
+    return response.json();
+  })
+  .then(data => {
+    alert(data.message || '记录已成功删除');
+    window.resetForm();
+    window.loadLogRecords();
+  })
+  .catch(error => {
+    console.error('删除失败:', error);
+    alert('删除失败: ' + error.message);
+  })
+  .finally(() => {
+    deleteButton.disabled = false;
+    deleteButton.innerHTML = '删除';
+  });
+};
+
+// 加载履历表记录
+window.loadLogRecords = function(filter = 'all') {
+  console.log('加载履历表记录，筛选:', filter);
+  
+  fetch(`{% url "experiment:get_experiment_logs" %}?filter=${filter}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('网络响应异常');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('获取记录成功:', data);
+      window.displayLogRecords(data.logs || []);
+    })
+    .catch(error => {
+      console.error('加载记录失败:', error);
+      alert('加载记录失败: ' + error.message);
+    });
+};
+
+// 显示履历表记录
+window.displayLogRecords = function(logs) {
+  const recordsContainer = document.getElementById('log-records');
+  if (!recordsContainer) {
+    console.error('找不到records容器');
+    return;
+  }
+  
+  recordsContainer.innerHTML = '';
+  
+  // 添加调试信息，检查logs中是否包含analysis_report字段
+  console.log('记录数据:', logs);
+  if (logs.length > 0) {
+    console.log('第一条记录:', logs[0]);
+    console.log('分析报告字段:', logs[0].analysis_report);
+  }
+  
+  // 更新记录数量显示
+  const recordsCount = document.getElementById('records-count');
+  if (recordsCount) {
+    recordsCount.textContent = `${logs ? logs.length : 0} 条记录`;
+  }
+  
+  if (!logs || logs.length === 0) {
+    recordsContainer.innerHTML = '<div id="no-records-message" class="text-center py-4"><p class="text-muted"><i class="fas fa-info-circle me-2"></i>暂无记录</p></div>';
+    return;
+  }
+  
+  // 按年月分组记录
+  const groupedLogs = {};
+  logs.forEach(log => {
+    const date = new Date(log.log_date);
+    const yearMonth = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+    
+    if (!groupedLogs[yearMonth]) {
+      groupedLogs[yearMonth] = [];
+    }
+    
+    groupedLogs[yearMonth].push(log);
+  });
+  
+  // 创建分组的折叠面板
+  let index = 0;
+  Object.keys(groupedLogs).sort().reverse().forEach(yearMonth => {
+    const groupLogs = groupedLogs[yearMonth];
+    const groupId = `group-${index}`;
+    
+    // 创建年月分组头
+    const groupItem = document.createElement('div');
+    groupItem.className = 'accordion-item';
+    groupItem.innerHTML = `
+      <h2 class="accordion-header" id="heading-${groupId}">
+        <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button" 
+                data-bs-toggle="collapse" data-bs-target="#collapse-${groupId}" 
+                aria-expanded="${index === 0 ? 'true' : 'false'}" aria-controls="collapse-${groupId}">
+          <i class="fas fa-calendar-alt me-2"></i> ${yearMonth} <span class="badge bg-primary ms-2">${groupLogs.length}条记录</span>
+        </button>
+      </h2>
+      <div id="collapse-${groupId}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" 
+           aria-labelledby="heading-${groupId}" data-bs-parent="#log-records">
+        <div class="accordion-body p-0">
+          <div class="list-group list-group-flush"></div>
+        </div>
+      </div>
+    `;
+    
+    recordsContainer.appendChild(groupItem);
+    const logList = groupItem.querySelector('.list-group');
+    
+    // 添加该组的所有记录
+    groupLogs.forEach(log => {
+      const logItem = document.createElement('a');
+      logItem.href = '#';
+      logItem.className = 'list-group-item list-group-item-action';
+      logItem.dataset.logId = log.log_id;
+      
+      // 检查是否有数据路径或分析报告，添加文件链接
+      let fileLinks = '';
+      
+      if (log.data_path) {
+        fileLinks += `<div class="mt-1"><small class="d-block"><i class="fas fa-database me-1"></i>数据路径: <a href="/media/${log.data_path}" target="_blank" class="text-primary" onclick="event.stopPropagation();">查看文件</a></small></div>`;
+      }
+      
+      if (log.analysis_report) {
+        // 支持多个分析报告（以分号分隔）
+        const reportPaths = log.analysis_report.split(';');
+        if (reportPaths.length > 0) {
+          reportPaths.forEach((path, index) => {
+            if (path) {
+              // 从路径中提取文件名
+              const fileName = path.split('/').pop();
+              fileLinks += `<div class="mt-1"><small class="d-block"><i class="fas fa-file-alt me-1"></i>分析报告 ${index+1}: <a href="/media/${path}" target="_blank" class="text-primary" onclick="event.stopPropagation();">${fileName}</a></small></div>`;
+            }
+          });
+        }
+      }
+      
+      logItem.innerHTML = `
+        <div class="d-flex w-100 justify-content-between">
+          <h6 class="mb-1">
+            <i class="fas fa-clipboard-list me-2"></i><span class="task-number">${log.task_number}</span> - 
+            <span class="project-code">${log.project_code}</span> -
+            <span class="sample-number">${log.sample_number}</span>
+          </h6>
+          <small><i class="far fa-calendar me-1"></i>${new Date(log.log_date).toLocaleDateString()}</small>
+        </div>
+        <p class="mb-1 text-truncate test-content"><i class="fas fa-vial me-2"></i>${log.test_content}</p>
+        <div class="d-flex flex-wrap mt-1">
+          <small class="d-block text-truncate me-3"><i class="fas fa-microchip me-1"></i>设备: ${log.equipment_id || '未指定'}</small>
+          <small class="d-block text-truncate me-3"><i class="fas fa-exclamation-triangle me-1"></i>现象: ${log.alarm_phenomenon}</small>
+          <small class="d-block text-truncate"><i class="fas fa-tools me-1"></i>解决办法: ${log.solution}</small>
+        </div>
+        ${fileLinks}
+      `;
+      
+      // 绑定点击事件
+      logItem.addEventListener('click', function(e) {
+        e.preventDefault();
+        window.loadLogDetails(log.log_id);
+      });
+      
+      logList.appendChild(logItem);
+    });
+    
+    index++;
+  });
+};
+
+// 加载记录详情
+window.loadLogDetails = function(logId) {
+  // 如果表单有未保存的更改，提示用户
+  if (window.formHasUnsavedChanges) {
+    if (!confirm('当前表单有未保存的更改，加载新记录将丢失这些更改。是否继续？')) {
+      return;
+    }
+  }
+  
+  fetch(`{% url "experiment:get_experiment_log" "0" %}`.replace('0', logId))
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success' && data.data) {
+        // 在填充新数据前重置表单
+        window.resetForm();
+        window.fillFormWithLogDetails(data.data);
+        document.getElementById('delete-btn').classList.remove('d-none');
+        // 重置未保存更改标记
+        window.formHasUnsavedChanges = false;
+        // 恢复保存按钮样式
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) {
+          saveBtn.classList.remove('btn-warning');
+          saveBtn.classList.add('btn-primary');
+          saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存数据';
+        }
+      } else {
+        try {
+          toastr.error(data.message || '无法加载记录详情', '加载失败');
+        } catch(e) {
+          // 如果toastr未定义，使用alert作为备用
+          alert(data.message || '无法加载记录详情');
+        }
+      }
+    })
+    .catch(error => {
+      console.error('加载详情时发生错误:', error);
+      try {
+        toastr.error('加载详情时发生错误', '系统错误');
+      } catch(e) {
+        // 如果toastr未定义，使用alert作为备用
+        alert('加载详情时发生错误: ' + error.message);
+      }
+    });
+};
+
+// 填充表单
+window.fillFormWithLogDetails = function(log) {
+  document.getElementById('log-id').value = log.log_id;
+  
+  // 只填充指定字段：任务单编号、项目代号、样件编号、试验内容、设备编号
+  document.getElementById('task-number').value = log.task_number;
+  document.getElementById('project-code').value = log.project_code;
+  document.getElementById('sample-number').value = log.sample_number;
+  document.getElementById('test-content').value = log.test_content;
+  document.getElementById('equipment-id').value = log.equipment_id;
+  
+  // 填充其他字段
+  document.getElementById('stop-duration').value = log.stop_duration || '';
+  document.getElementById('alarm-phenomenon').value = log.alarm_phenomenon || '';
+  document.getElementById('alarm-reason').value = log.alarm_reason || '';
+  document.getElementById('solution').value = log.solution || '';
+  document.getElementById('solver').value = log.solver || '';
+  document.getElementById('data-path').value = log.data_path || '';
+  
+  // 文件上传控件无法直接设置值，但我们可以通过隐藏字段跟踪已上传的报告
+  if (log.analysis_report) {
+    const reportInfoElement = document.querySelector('#analysis-report-info');
+    if (reportInfoElement) {
+      // 支持多个分析报告（以分号分隔）
+      const reportPaths = log.analysis_report.split(';');
+      let reportsHtml = '<div class="mb-2">当前已上传的报告：</div>';
+      
+      reportPaths.forEach((path, index) => {
+        if (path) {
+          // 从路径中提取文件名
+          const fileName = path.split('/').pop();
+          reportsHtml += `<div class="d-flex align-items-center">
+            <small class="d-block mb-1">${index+1}. <a href="/media/${path}" target="_blank" class="text-info">${fileName}</a></small>
+            <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="window.deleteReport('${path}'); return false;">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>`;
+        }
+      });
+      
+      reportInfoElement.innerHTML = reportsHtml;
+      reportInfoElement.classList.remove('d-none');
+      
+      // 添加隐藏字段存储报告路径，用于表单提交
+      let hiddenReportField = document.getElementById('hidden-analysis-report');
+      if (!hiddenReportField) {
+        hiddenReportField = document.createElement('input');
+        hiddenReportField.type = 'hidden';
+        hiddenReportField.id = 'hidden-analysis-report';
+        hiddenReportField.name = 'hidden_analysis_report';
+        document.getElementById('log-form').appendChild(hiddenReportField);
+      }
+      hiddenReportField.value = log.analysis_report;
+    }
+  } else {
+    const reportInfoElement = document.querySelector('#analysis-report-info');
+    if (reportInfoElement) {
+      reportInfoElement.classList.add('d-none');
+    }
+  }
+  
+  if (log.log_date) {
+    // 修复日期问题：直接从ISO格式字符串中截取日期部分，不经过Date对象转换
+    // 避免时区问题导致日期偏差
+    const dateStr = log.log_date.split('T')[0];
+    document.getElementById('log-date').value = dateStr;
+  } else {
+    document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+  }
+  
+  // 确保删除按钮显示
+  document.getElementById('delete-btn').classList.remove('d-none');
+};
+
+// 搜索记录
+window.searchLogs = function() {
+  const query = document.getElementById('search-input').value.trim();
+  if (!query) {
+    window.loadLogRecords();
+    // 重置设备筛选
+    document.getElementById('equipment-filter-dropdown').innerHTML = '<i class="fas fa-microchip me-1"></i> 设备筛选';
+    return;
+  }
+  
+  fetch(`{% url "experiment:search_experiment_logs" %}?query=${encodeURIComponent(query)}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('网络响应异常');
+      }
+      return response.json();
+    })
+    .then(data => {
+      window.displayLogRecords(data.logs || []);
+      // 重置设备筛选
+      document.getElementById('equipment-filter-dropdown').innerHTML = '<i class="fas fa-microchip me-1"></i> 设备筛选';
+    })
+    .catch(error => {
+      console.error('搜索失败:', error);
+      alert('搜索失败: ' + error.message);
+    });
+};
+
+// 筛选记录
+window.filterLogs = function(filter) {
+  // 获取当前设备筛选
+  const equipmentFilter = document.getElementById('equipment-filter-dropdown').textContent.trim();
+  
+  // 更新时间筛选按钮文本（保留图标）
+  let filterText = '所有记录';
+  if (filter === 'week') filterText = '最近一周';
+  else if (filter === 'month') filterText = '最近一月';
+  else if (filter === 'year') filterText = '最近一年';
+  
+  document.getElementById('filter-dropdown').innerHTML = `<i class="fas fa-calendar-alt me-1"></i> ${filterText}`;
+  
+  // 如果设备筛选不是"设备筛选"（即已选择某个设备），则需要保持该筛选
+  if (equipmentFilter !== '设备筛选' && !equipmentFilter.includes('设备筛选')) {
+    // 从设备列表中查找设备ID
+    const equipmentId = equipmentFilter.trim(); // 当前设备筛选的文本就是设备ID
+    
+    // 先加载所有按时间筛选的记录，然后在前端按设备ID筛选
+    fetch(`{% url "experiment:get_experiment_logs" %}?filter=${filter}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('网络响应异常');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('获取记录成功，保持按设备筛选');
+        // 按设备ID筛选记录
+        const filteredLogs = data.logs.filter(log => log.equipment_id === equipmentId);
+        window.displayLogRecords(filteredLogs || []);
+      })
+      .catch(error => {
+        console.error('筛选失败:', error);
+        alert('筛选失败: ' + error.message);
+      });
+  } else {
+    // 正常加载按时间筛选的记录
+    window.loadLogRecords(filter);
+  }
+};
+
+// 按设备编号筛选记录
+window.filterByEquipment = function(equipmentId) {
+  console.log('按设备筛选:', equipmentId);
+  
+  // 如果选择所有设备，直接加载所有记录并更新按钮文本
+  if (equipmentId === 'all') {
+    document.getElementById('equipment-filter-dropdown').innerHTML = '<i class="fas fa-microchip me-1"></i> 设备筛选';
+    window.loadLogRecords();
+    return;
+  }
+  
+  // 更新设备筛选按钮文本
+  document.getElementById('equipment-filter-dropdown').innerHTML = `<i class="fas fa-microchip me-1"></i> ${equipmentId}`;
+  
+  // 获取当前时间筛选值
+  const timeFilter = document.getElementById('filter-dropdown').textContent.trim();
+  let filter = 'all';
+  if (timeFilter.includes('最近一周')) filter = 'week';
+  else if (timeFilter.includes('最近一月')) filter = 'month';
+  else if (timeFilter.includes('最近一年')) filter = 'year';
+  
+  // 获取所有记录，然后按设备筛选
+  fetch(`{% url "experiment:get_experiment_logs" %}?filter=${filter}`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('网络响应异常');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('获取记录成功，开始按设备筛选');
+      // 按设备ID筛选记录
+      const filteredLogs = data.logs.filter(log => log.equipment_id === equipmentId);
+      window.displayLogRecords(filteredLogs || []);
+    })
+    .catch(error => {
+      console.error('按设备筛选失败:', error);
+      alert('筛选失败: ' + error.message);
+    });
+};
+
+// 删除分析报告函数
+window.deleteReport = function(reportPath) {
+  console.log('删除分析报告:', reportPath);
+  
+  try {
+    // 获取当前记录ID
+    const logId = document.getElementById('log-id').value;
+    if (!logId) {
+      alert('无法删除报告：未找到当前记录ID');
+      return;
+    }
+    
+    // 获取当前的分析报告列表
+    const hiddenReportField = document.getElementById('hidden-analysis-report');
+    if (!hiddenReportField) {
+      alert('未找到分析报告列表字段');
+      return;
+    }
+    
+    const currentReports = hiddenReportField.value;
+    if (!currentReports) {
+      alert('当前没有分析报告');
+      return;
+    }
+    
+    // 确认是否删除
+    if (!confirm('确定要删除此分析报告吗？此操作将立即保存到数据库。')) {
+      return;
+    }
+    
+    // 按分号分隔报告路径
+    const reportPaths = currentReports.split(';');
+    
+    // 过滤掉要删除的报告路径
+    const filteredPaths = reportPaths.filter(path => path && path !== reportPath);
+    
+    // 更新隐藏字段的值
+    hiddenReportField.value = filteredPaths.join(';');
+    
+    // 准备发送到服务器的数据
+    const formData = new FormData();
+    formData.append('log_id', logId);
+    formData.append('analysis_report', filteredPaths.join(';'));
+    
+    // 获取CSRF令牌
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // 使用安全的toastr封装
+    window.safeToastr.info('正在更新数据库...', '请稍候');
+    
+    // 直接发送AJAX请求更新数据库
+    fetch("{% url 'experiment:save_experiment_log' %}", {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('网络响应异常：' + response.status);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.status === 'success') {
+        // 更新显示
+        const reportInfoElement = document.querySelector('#analysis-report-info');
+        if (reportInfoElement) {
+          if (filteredPaths.length === 0) {
+            reportInfoElement.classList.add('d-none');
+          } else {
+            let reportsHtml = '<div class="mb-2">当前已上传的报告：</div>';
+            
+            filteredPaths.forEach((path, index) => {
+              if (path) {
+                // 从路径中提取文件名
+                const fileName = path.split('/').pop();
+                reportsHtml += `<div class="d-flex align-items-center">
+                  <small class="d-block mb-1">${index+1}. <a href="/media/${path}" target="_blank" class="text-info">${fileName}</a></small>
+                  <button type="button" class="btn btn-sm btn-outline-danger ms-2" onclick="window.deleteReport('${path}'); return false;">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>`;
+              }
+            });
+            
+            reportInfoElement.innerHTML = reportsHtml;
+          }
+        }
+        
+        // 使用安全的toastr封装
+        window.safeToastr.success('分析报告已删除', '操作成功');
+        
+        // 重置未保存更改标记
+        window.formHasUnsavedChanges = false;
+        
+        // 恢复保存按钮样式
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) {
+          saveBtn.classList.remove('btn-warning');
+          saveBtn.classList.add('btn-primary');
+          saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存数据';
+        }
+      } else {
+        window.safeToastr.error(data.message || '未知错误', '删除失败');
+      }
+    })
+    .catch(error => {
+      console.error('删除报告时出错:', error);
+      window.safeToastr.error('无法更新数据库: ' + error.message, '操作失败');
+    });
+  } catch (error) {
+    console.error('删除分析报告时出错:', error);
+    alert('删除分析报告时出错: ' + error.message);
+  }
+};
+
+// 自动加载初始化
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('页面已完全加载，开始初始化');
+  
+  try {
+    // 加载日志记录
+    window.loadLogRecords();
+    
+    // 设置当前日期为默认日期
+    const dateInput = document.getElementById('log-date');
+    if (dateInput) {
+      dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    // 初始化表单未保存更改标记
+    window.formHasUnsavedChanges = false;
+    
+    // 监听表单输入变化，设置未保存更改标记
+    const form = document.getElementById('log-form');
+    if (form) {
+      const inputs = form.querySelectorAll('input, textarea, select');
+      inputs.forEach(input => {
+        input.addEventListener('change', function() {
+          window.formHasUnsavedChanges = true;
+          const saveBtn = document.getElementById('save-btn');
+          if (saveBtn && !saveBtn.classList.contains('btn-warning')) {
+            saveBtn.classList.remove('btn-primary');
+            saveBtn.classList.add('btn-warning');
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> 保存更改*';
+          }
+        });
+      });
+    }
+    
+    console.log('初始化完成');
+  } catch (error) {
+    console.error('初始化过程中出错:', error);
+    alert('页面初始化时出错: ' + error.message);
+  }
+});
+</script>
+
+<!-- 添加Font Awesome图标库 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<!-- 添加一些自定义样式 -->
+<style>
+  .card {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    border: none;
+  }
+  .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    padding: 0.75rem 1.25rem;
+  }
+  .card-body {
+    padding: 1.25rem;
+  }
+  .btn-action {
+    margin-left: 10px;
+  }
+  .form-label {
+    font-weight: 500;
+  }
+  .list-group-item {
+    transition: all 0.2s;
+  }
+  .list-group-item:hover {
+    background-color: #f8f9fa;
+  }
+  .accordion-button:not(.collapsed) {
+    background-color: #e7f5ff;
+    color: #0d6efd;
+  }
+  .accordion-button:focus {
+    box-shadow: none;
+  }
+  .btn-action-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+  }
+  .sample-number {
+    color: #fd7e14;
+    font-weight: 500;
+  }
+  .task-number {
+    color: #fd7e14;
+    font-weight: 500;
+  }
+  .project-code {
+    color: #fd7e14;
+    font-weight: 500;
+  }
+  .test-content {
+    color: #d9534f;
+    font-weight: 500;
+  }
+  /* 使记录列表高度与左侧表单一致 */
+  .log-records-container {
+    height: calc(100vh - 250px);
+    overflow-y: auto;
+  }
+  /* 表单验证样式 */
+  .is-invalid {
+    border-color: #dc3545 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+  }
+  .invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+  }
+</style>
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/ban4.png' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href={% url 'experiment:experiment_tasks_long' %}>试验管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- 试验履历表登记部分 -->
+    <section id="log-section" class="log-section section">
+      <div class="container" data-aos="fade-up">
+        <div class="row">
+          <!-- 左侧表单 -->
+          <div class="col-lg-5">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-clipboard-check me-2"></i>履历表登记</h5>
+              </div>
+              <div class="card-body">
+                <form id="log-form" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <input type="hidden" id="log-id" name="log_id">
+                  
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label for="task-number" class="form-label"><i class="fas fa-clipboard-list me-1"></i> 任务单编号 <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="task-number" name="task_number" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="project-code" class="form-label"><i class="fas fa-project-diagram me-1"></i> 项目代号 <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="project-code" name="project_code" required>
+                    </div>
+                  </div>
+                  
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label for="sample-number" class="form-label"><i class="fas fa-barcode me-1"></i> 样件编号 <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="sample-number" name="sample_number" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="log-date" class="form-label"><i class="fas fa-calendar me-1"></i> 登记日期 <span class="text-danger">*</span></label>
+                      <input type="date" class="form-control" id="log-date" name="log_date" value="{{ today_date|date:'Y-m-d' }}" required>
+                    </div>
+                  </div>
+                  
+                  <div class="row mb-3">
+                    <div class="col-md-8">
+                      <label for="test-content" class="form-label"><i class="fas fa-vial me-1"></i> 试验内容 <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="test-content" name="test_content" required>
+                    </div>
+                    <div class="col-md-4">
+                      <label for="stop-duration" class="form-label"><i class="fas fa-hourglass-half me-1"></i> 停止时长 (小时) <span class="text-danger">*</span></label>
+                      <input type="number" class="form-control" id="stop-duration" name="stop_duration" min="0" step="0.1" required>
+                    </div>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="equipment-id" class="form-label"><i class="fas fa-microchip me-1"></i> 设备编号 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="equipment-id" name="equipment_id" required>
+                      <option value="">-- 请选择设备 --</option>
+                      {% for equipment in equipment_list %}
+                        <option value="{{ equipment.equipment_id }}">{{ equipment.equipment_id }} - {{ equipment.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="alarm-phenomenon" class="form-label"><i class="fas fa-exclamation-triangle me-1"></i> 报警现象 <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="alarm-phenomenon" name="alarm_phenomenon" rows="2" required></textarea>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="alarm-reason" class="form-label"><i class="fas fa-question-circle me-1"></i> 报警原因 <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="alarm-reason" name="alarm_reason" rows="2" required></textarea>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="solution" class="form-label"><i class="fas fa-tools me-1"></i> 解决办法 <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="solution" name="solution" rows="2" required></textarea>
+                  </div>
+                  
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label for="solver" class="form-label"><i class="fas fa-user-cog me-1"></i> 解决人 <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="solver" name="solver" required>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="data-path" class="form-label"><i class="fas fa-folder-open me-1"></i> 数据记录路径</label>
+                      <input type="text" class="form-control" id="data-path" name="data_path">
+                    </div>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label for="analysis-report" class="form-label"><i class="fas fa-file-pdf me-1"></i> 分析报告</label>
+                    <div class="input-group">
+                      <input type="file" class="form-control" id="analysis-report" name="analysis_report" accept=".pdf,.doc,.docx,.xls,.xlsx" multiple>
+                      <label class="input-group-text" for="analysis-report"><i class="fas fa-upload"></i></label>
+                    </div>
+                    <div class="form-text">支持上传多个 PDF、Word、Excel 格式的分析报告，文件名将保持不变</div>
+                    <div id="analysis-report-info" class="mt-2 d-none text-info"></div>
+                  </div>
+                  
+                  <div class="btn-action-container">
+                    <button type="button" id="reset-btn" class="btn btn-outline-secondary btn-action" onclick="window.resetForm(); return false;">
+                      <i class="fas fa-eraser"></i> 清空数据
+                    </button>
+                    <button type="button" id="clear-fields-btn" class="btn btn-outline-info btn-action" onclick="window.clearFields(); return false;">
+                      <i class="fas fa-broom"></i> 清空填写
+                    </button>
+                    <button type="button" id="delete-btn" class="btn btn-outline-danger btn-action d-none" onclick="if(confirm('确定要删除此记录吗？此操作不可恢复。')) window.deleteLog(); return false;">
+                      <i class="fas fa-trash-alt"></i> 删除记录
+                    </button>
+                    <button type="button" id="save-btn" class="btn btn-primary btn-action" onclick="window.saveForm(); return false;">
+                      <i class="fas fa-save"></i> 保存数据
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 右侧记录列表 -->
+          <div class="col-lg-7">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title"><i class="fas fa-history me-2"></i>履历表记录
+                  <span id="records-count" class="badge bg-info ms-2">0 条记录</span>
+                </h5>
+                <div class="float-end d-flex align-items-center">
+                  <div class="dropdown">
+                  <!-- 登记日期筛选下拉框 -->
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle me-2" type="button" id="filter-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="fas fa-calendar-alt me-1"></i> 时间筛选
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="filter-dropdown">
+                      <li><a class="dropdown-item filter-all" href="#" data-value="all" onclick="window.filterLogs('all'); document.getElementById('filter-dropdown').textContent = '所有记录'; return false;"><i class="fas fa-list me-2"></i>所有记录</a></li>
+                      <li><a class="dropdown-item filter-week" href="#" data-value="week" onclick="window.filterLogs('week'); document.getElementById('filter-dropdown').textContent = '最近一周'; return false;"><i class="fas fa-calendar-week me-2"></i>最近一周</a></li>
+                      <li><a class="dropdown-item filter-month" href="#" data-value="month" onclick="window.filterLogs('month'); document.getElementById('filter-dropdown').textContent = '最近一月'; return false;"><i class="fas fa-calendar-alt me-2"></i>最近一月</a></li>
+                      <li><a class="dropdown-item filter-month" href="#" data-value="month" onclick="window.filterLogs('year'); document.getElementById('filter-dropdown').textContent = '最近一年'; return false;"><i class="far fa-calendar me-2"></i>最近一年</a></li>
+                    </ul>
+                  </div>
+                  <!-- 设备编号筛选下拉框 -->
+                  <div class="dropdown me-2">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="equipment-filter-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="fas fa-microchip me-1"></i> 设备筛选
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="equipment-filter-dropdown">
+                      <li><a class="dropdown-item filter-equipment-all" href="#" onclick="window.filterByEquipment('all'); document.getElementById('equipment-filter-dropdown').textContent = '设备筛选'; return false;"><i class="fas fa-th-list me-2"></i>全部设备</a></li>
+                      {% for equipment in equipment_list %}
+                        <li><a class="dropdown-item" href="#" onclick="window.filterByEquipment('{{ equipment.equipment_id }}'); document.getElementById('equipment-filter-dropdown').textContent = '{{ equipment.equipment_id }}'; return false;"><i class="fas fa-microchip me-2"></i>{{ equipment.equipment_id }} - {{ equipment.name }}</a></li>
+                      {% endfor %}
+                    </ul>
+                  </div>
+                  
+                  <div id="search-bar" class="me-2" style="width: 250px;">
+                    <div class="input-group">
+                      <input type="text" class="form-control form-control-sm" id="search-input" placeholder="搜索任务单编号、项目代号...">
+                      <button class="btn btn-sm btn-outline-secondary" type="button" id="search-btn" onclick="window.searchLogs(); return false;">
+                        <i class="fas fa-search"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="log-records-container">
+                  <div class="accordion" id="log-records">
+                    <!-- 记录将通过JavaScript动态添加 -->
+                    <div id="no-records-message" class="text-center py-4">
+                      <p>暂无记录</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section><!-- /试验履历表登记部分 -->
+
+  </main>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 确认脚本加载状态
+console.log('基础脚本已加载');
+
+// 监控函数是否在全局范围内可用
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM加载完成，确认window上的函数是否可用:');
+  console.log('saveForm:', typeof window.saveForm === 'function');
+  console.log('resetForm:', typeof window.resetForm === 'function');
+  console.log('loadLogRecords:', typeof window.loadLogRecords === 'function');
+});
+</script>
+{% endblock %}

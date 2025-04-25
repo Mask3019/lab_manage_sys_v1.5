@@ -1,0 +1,528 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/design-2.jpg' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href={% url 'comprehensive:report_analysis' %}>综合管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Starter Section Section -->
+    <section id="starter-section" class="starter-section section">
+        <div class="container" data-aos="fade-up">
+
+            <!-- 新增卡片包裹的控件 -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        {% if user_has_permission %}
+                            <button id="add-row" class="btn btn-primary me-3">新增大纲</button>
+                        {% endif %}
+
+                        <div class="d-flex flex-wrap align-items-center me-3">
+                            <label for="outline-status" class="me-2">大纲状态：</label>
+                            <select id="outline-status" class="form-select me-4">
+                                <option value="正常使用">正常使用</option>
+                                <option value="大纲作废">大纲作废</option>
+                            </select>
+
+                            <label for="sample-style" class="me-2">样件类型：</label>
+                            <select id="sample-style" class="form-select me-4">
+                                <option value=""> </option>
+                                <option value="横置手动">横置手动</option>
+                                <option value="纵置手动">纵置手动</option>
+                                <option value="DCT">DCT</option>
+                                <option value="AT">AT</option>
+                                <option value="CVT">CVT</option>
+                                <option value="电驱动">电驱动</option>
+                                <option value="减速器">减速器</option>
+                                <option value="混动">混动</option>
+                                <option value="其他">其他</option>
+                            </select>
+
+                            <label for="project-code" class="me-2">项目代号：</label>
+                            <select id="project-code" class="form-select me-4">
+                                <!-- 初始化为空 -->
+                            </select>
+                        </div>
+
+                        <button id="clear-filters" class="btn btn-secondary me-4">清除筛选</button>
+
+                        <input type="text" id="search-input" class="form-control" placeholder="搜索..." style="max-width: 300px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="height: 750px; overflow: hidden;">
+                <div class="card-body" style="height: 100%; padding: 0; overflow-y: auto;">
+                    <table id="outline-table" class="table table-bordered table-striped mb-0" style="width: 100%;">
+                        <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                            <tr>
+                                <th style="text-align: center;width: 3%;">序号</th>
+                                <th style="text-align: center;width: 6%;">样件类型</th>
+                                <th style="text-align: center;width: 5%;">项目代号</th>
+                                <th style="text-align: center;width: 15%;">大纲编号</th>
+                                <th style="text-align: center;width: 22%;">大纲名称</th>
+                                <th style="text-align: center;width: 4%;">编写者</th>
+                                <th style="text-align: center;width: 6%;">归档日期</th>
+                                <th style="text-align: center;width: 6%;">大纲状态</th>
+                                <th style="text-align: center;">备注</th>
+                                {% if user_has_permission %}
+                                <th style="text-align: center;width: 12%;">操作</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for outline in outlines %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ outline.sample_style }}</td>
+                                <td>{{ outline.project }}</td>
+                                <td><a href="{% get_media_prefix %}files/{{ outline.project }}/{{ outline.outline_num }}.pdf" target="_blank">{{ outline.outline_num }}</a></td>
+                                <td>{{ outline.outline_name }}</td>
+                                <td>{{ outline.editor }}</td>
+                                <td>{{ outline.save_date|date:"Y-m-d" }}</td>
+                                <td>{{ outline.outline_status }}</td>
+                                <td>{{ outline.remark }}</td>
+
+                                {% if user_has_permission %}
+                                <td>
+                                    <button class="btn btn-sm btn-warning upload-btn" data-outline-num="{{ outline.outline_num }}">上传</button>
+                                    <input type="file" class="file-input d-none" data-outline-num="{{ outline.outline_num }}">
+                                    <button class="btn btn-sm btn-info edit-btn">编辑</button>
+                                    <button class="btn btn-sm btn-danger delete-btn" data-outline-num="{{ outline.outline_num }}">删除</button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+{% if error_message %}
+<script>
+    alert("{{ error_message }}");
+</script>
+{% endif %}
+
+<!-- JavaScript to handle interactions -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM fully loaded and parsed');
+
+        // 数据格式验证函数
+        function validateData(data) {
+            const errors = [];
+
+            // 大纲编号验证
+            if (!/^[A-Z][A-Z0-9]*-[0-9]+-SG(0[1-9]|[1-9][0-9])-2[0-9]{3}$/.test(data.outline_num)) {
+                errors.push('大纲编号格式不对，正确格式如：SH50A9-7-SG01-2022');
+            }
+
+            // 日期格式验证
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(data.save_date)) {
+                errors.push('归档日期格式必须为 "YYYY-MM-DD"');
+            }
+
+            return errors;
+        }
+
+        // 强制格式化日期为 YYYY-MM-DD，并确保为字符串
+        function formatDate(date) {
+            const d = new Date(date);
+            let month = '' + (d.getMonth() + 1);
+            let day = '' + d.getDate();
+            const year = d.getFullYear();
+
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+
+            return [year, month, day].join('-');
+        }
+
+        // 搜索功能
+        document.getElementById('search-input').addEventListener('keyup', function () {
+            let searchValue = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#outline-table tbody tr');
+            rows.forEach(row => {
+                let cells = Array.from(row.cells).map(cell => cell.innerText.toLowerCase());
+                let match = cells.some(cellText => cellText.includes(searchValue));
+                row.style.display = match ? '' : 'none';
+            });
+        });
+
+        // 添加行
+        document.getElementById('add-row').addEventListener('click', function () {
+            let table = document.getElementById('outline-table').getElementsByTagName('tbody')[0];
+            let newRow = table.insertRow();
+            newRow.innerHTML = `
+                <td contenteditable="true"></td>
+                <td>
+                    <select class="table-select">
+                        <option value="横置手动">横置手动</option>
+                        <option value="纵置手动">纵置手动</option>
+                        <option value="DCT">DCT</option>
+                        <option value="AT">AT</option>
+                        <option value="CVT">CVT</option>
+                        <option value="电驱动">电驱动</option>
+                        <option value="混动">混动</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td><input type="date" class="table-select"></td>
+                <td>
+                    <select class="table-select">
+                        <option value="正常使用">正常使用</option>
+                        <option value="大纲作废">大纲作废</option>
+                    </select>
+                </td>
+                <td contenteditable="true"></td>
+                <td>
+                    <button class="btn btn-sm btn-success save-btn">保存</button>
+                    <button class="btn btn-sm btn-secondary cancel-btn">取消</button>
+                </td>`;
+            console.log('New row added');
+        });
+
+        // 监听大纲状态、样件类型、项目代号下拉框变化，并更新表格内容
+        function updateProjectCodeOptions() {
+            const outlineStatus = document.getElementById('outline-status').value;
+            const sampleStyle = document.getElementById('sample-style').value;
+            const projectCode = document.getElementById('project-code').value;
+
+            // 在每次更新前清空项目代号下拉框
+            const projectCodeSelect = document.getElementById('project-code');
+            projectCodeSelect.innerHTML = '<option value="">选择项目代号</option>';
+            {#const sampleStyleSelect = document.getElementById('sample-style');#}
+            {#sampleStyleSelect.innerHTML = '<option value=""> </option>';#}
+
+            const queryParams = new URLSearchParams({
+                outline_status: outlineStatus || '',
+                sample_style: sampleStyle || '',
+                project: projectCode || ''  // 添加项目代号到查询参数
+            });
+
+            fetch(`{% url 'comprehensive:filter_projects' %}?${queryParams.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    // 更新项目代号下拉框
+                    if (data.projects.length > 0) {
+                        data.projects.forEach(project => {
+                            const option = document.createElement('option');
+                            option.value = project;
+                            option.textContent = project;
+                            if (project === projectCode) {
+                                option.selected = true;
+                            }
+                            projectCodeSelect.appendChild(option);
+                        });
+                    } else {
+                        const emptyOption = document.createElement('option');
+                        emptyOption.textContent = '无可用项目代号';
+                        emptyOption.disabled = true;
+                        projectCodeSelect.appendChild(emptyOption);
+                    }
+
+                    // 更新表格内容
+                    const tbody = document.querySelector('#outline-table tbody');
+                    tbody.innerHTML = '';  // 清空表格
+
+                    if (data.outlines.length > 0) {
+                        data.outlines.forEach(outline => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${outline.id}</td>
+                                <td>${outline.sample_style}</td>
+                                <td>${outline.project}</td>
+                                <td>${outline.outline_num}</td>
+                                <td>${outline.outline_name}</td>
+                                <td>${outline.editor}</td>
+                                <td>${outline.save_date}</td>
+                                <td>${outline.outline_status}</td>
+                                <td>${outline.remark}</td>
+                                {% if user_has_permission %}
+                                <td>
+                                    <button class="btn btn-sm btn-info edit-btn">编辑</button>
+                                    <button class="btn btn-sm btn-danger delete-btn" data-outline-num="${outline.outline_num}">删除</button>
+                                </td>
+                                {% endif %}
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    } else {
+                        const emptyRow = document.createElement('tr');
+                        const emptyCell = document.createElement('td');
+                        emptyCell.setAttribute('colspan', '10');
+                        emptyCell.textContent = '没有匹配的记录';
+                        emptyCell.style.textAlign = 'center';
+                        emptyRow.appendChild(emptyCell);
+                        tbody.appendChild(emptyRow);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取数据时出错:', error);
+                });
+        }
+
+        // 监听下拉框变化
+        document.getElementById('outline-status').addEventListener('change', updateProjectCodeOptions);
+        document.getElementById('sample-style').addEventListener('change', updateProjectCodeOptions);
+        document.getElementById('project-code').addEventListener('change', updateProjectCodeOptions);
+
+        // 清除筛选功能
+        document.getElementById('clear-filters').addEventListener('click', function () {
+            document.getElementById('outline-status').value = '正常使用';
+            document.getElementById('sample-style').value = '';
+            document.getElementById('project-code').innerHTML = '';
+            document.getElementById('project-code').innerHTML = '<option value="">选择项目代号</option>';
+            updateProjectCodeOptions();  // 更新表格内容
+        });
+
+        // 页面加载时调用一次
+        document.addEventListener('DOMContentLoaded', updateProjectCodeOptions);
+
+        document.getElementById('outline-table').addEventListener('click', function (event) {
+            let target = event.target;
+
+            // 点击上传按钮时触发文件选择框
+            if (target.classList.contains('upload-btn')) {
+                console.log('Upload button clicked!');
+                let outlineNum = target.getAttribute('data-outline-num');
+                let fileInput = target.closest('td').querySelector('.file-input');  // 使用 closest() 查找文件输入框
+                if (fileInput) {
+                    fileInput.click();
+
+                    // 监听文件选择
+                    fileInput.addEventListener('change', function () {
+                        let file = fileInput.files[0];
+                        if (file) {
+                            console.log('File selected:', file.name);
+                            let formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('outline_num', outlineNum);
+                            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}'); // 确保传递 CSRF token
+
+                            // 使用 AJAX 上传文件
+                            fetch("{% url 'comprehensive:upload_outline_file' %}", {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('文件上传成功');
+                                } else {
+                                    alert('文件上传失败: ' + data.error);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('文件上传失败', error);
+                                alert('文件上传失败，请稍后重试');
+                            });
+                        }
+                    });
+                } else {
+                    console.error('File input not found');
+                }
+            }
+        });
+
+
+        // 编辑、保存、删除、取消行
+        document.getElementById('outline-table').addEventListener('click', function (event) {
+            let target = event.target;
+
+            if (target.classList.contains('edit-btn')) {
+                let row = target.closest('tr');
+                row.querySelectorAll('td').forEach((cell, index) => {
+                    if (index !== 0 && index !== 9) { // Skip the first cell, '序号', '操作', and action buttons
+                        if (index === 1) { // 样件类型列
+                            let currentValue = cell.textContent.trim();
+                            cell.innerHTML = `<select class="table-select">
+                                <option value="横置手动" ${currentValue === "横置手动" ? "selected" : ""}>横置手动</option>
+                                <option value="纵置手动" ${currentValue === "纵置手动" ? "selected" : ""}>纵置手动</option>
+                                <option value="DCT" ${currentValue === "DCT" ? "selected" : ""}>DCT</option>
+                                <option value="AT" ${currentValue === "AT" ? "selected" : ""}>AT</option>
+                                <option value="CVT" ${currentValue === "CVT" ? "selected" : ""}>CVT</option>
+                                <option value="电驱动" ${currentValue === "电驱动" ? "selected" : ""}>电驱动</option>
+                                <option value="混动" ${currentValue === "混动" ? "selected" : ""}>混动</option>
+                                <option value="其他" ${currentValue === "其他" ? "selected" : ""}>其他</option>
+                            </select>`;
+                        } else if (index === 7) { // 大纲状态列
+                            let currentValue = cell.textContent.trim();
+                            cell.innerHTML = `<select class="table-select">
+                                <option value="正常使用" ${currentValue === "正常使用" ? "selected" : ""}>正常使用</option>
+                                <option value="大纲作废" ${currentValue === "大纲作废" ? "selected" : ""}>大纲作废</option>
+                            </select>`;
+                        } else {
+                            cell.contentEditable = true;
+                        }
+                    }
+                });
+                let taskDateCell = row.cells[6];
+                let dateValue = taskDateCell.textContent.trim();
+                taskDateCell.innerHTML = `<input type="date" class="table-select" value="${dateValue}">`; // Convert date cell to input field
+                target.textContent = '保存';
+                target.classList.remove('edit-btn');
+                target.classList.add('save-btn');
+            } else if (target.classList.contains('save-btn')) {
+                let row = target.closest('tr');
+                let data = {
+                    sample_style: row.cells[1].querySelector('select').value.trim(),
+                    project: row.cells[2].innerText.trim(),
+                    outline_num: row.cells[3].innerText.trim(),
+                    outline_name: row.cells[4].innerText.trim(),
+                    editor: row.cells[5].innerText.trim(),
+                    save_date: formatDate(row.cells[6].querySelector('input').value.trim()),
+                    outline_status: row.cells[7].querySelector('select').value.trim(),
+                    remark: row.cells[8].innerText.trim(),
+                };
+                console.log('Validating data:', data);
+
+                // 验证数据格式
+                const errors = validateData(data);
+                if (errors.length > 0) {
+                    alert('保存失败:\n' + errors.join('\n'));
+                    return;
+                }
+
+                // 如果验证通过，执行保存操作
+                $.ajax({
+                    url: "{% url 'comprehensive:save_outline' %}",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(data), // 确保使用 JSON.stringify
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        console.log('保存成功', response);
+                        row.querySelectorAll('td').forEach((cell, index) => {
+                            if (index !== 0 && index !== 9) {
+                                cell.contentEditable = false;
+                                if (index === 1) { // 样件类型列
+                                    let select = cell.querySelector('select');
+                                    cell.innerHTML = select.options[select.selectedIndex].text; // Convert dropdown back to text
+                                }
+                                if (index === 7) { // 大纲状态列
+                                    let select = cell.querySelector('select');
+                                    cell.innerHTML = select.options[select.selectedIndex].text; // Convert dropdown back to text
+                                }
+                            }
+                        });
+                        let taskDateCell = row.cells[6];
+                        let dateValue = taskDateCell.querySelector('input').value;
+                        taskDateCell.innerHTML = formatDate(dateValue); // Convert input field back to text
+                        target.textContent = '编辑';
+                        target.classList.remove('save-btn');
+                        target.classList.add('edit-btn');
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('保存失败', status, error);
+                        console.log(xhr.responseText);
+                        alert(`保存失败: ${xhr.responseText}`);
+                    }
+                });
+            } else if (target.classList.contains('delete-btn')) {
+                let row = target.closest('tr');
+                let outline_num = target.getAttribute('data-outline-num'); // 获取 outline_num
+
+                if (confirm('你确定要删除此任务吗？')) {
+                    $.ajax({
+                        url: "{% url 'comprehensive:delete_outline' %}", // 使用正确的URL路径
+                        method: "POST",
+                        data: {
+                            'outline_num': outline_num, // 确保 outline_num 被传递
+                            'csrfmiddlewaretoken': '{{ csrf_token }}' // CSRF 令牌
+                        },
+                        success: function (response) {
+                            console.log('删除成功', response);
+                            row.remove();
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('删除失败', status, error);
+                            alert('删除失败');
+                        }
+                    });
+                }
+            } else if (target.classList.contains('cancel-btn')) {
+                let row = target.closest('tr');
+                row.remove();
+                console.log('New row canceled');
+            }
+        });
+    });
+</script>
+
+<style>
+    .container[data-aos="fade-up"] {
+        max-width: 1750px;
+    }
+
+    #outline-table thead {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 1;
+    }
+
+    .starter-section input#search-input {
+        max-width: 300px;
+    }
+
+    .edit-btn, .save-btn, .delete-btn, .cancel-btn {
+        margin: 0 2px;
+    }
+
+    .table-select {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        background-color: transparent;
+        font-size: inherit;
+        line-height: inherit;
+        font-family: inherit;
+        text-align-last: center;
+        box-sizing: border-box;
+    }
+
+    .form-select {
+        width: auto;
+        min-width: 150px;
+    }
+
+    .me-2 {
+        margin-right: 8px;
+    }
+
+    .me-3 {
+        margin-right: 16px;
+    }
+
+    .me-4 {
+        margin-right: 24px;
+    }
+</style>
+
+{% endblock %}

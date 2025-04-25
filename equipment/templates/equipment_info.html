@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="main">
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/info_banner.png' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href={% url 'equipment:equipment_information' %}>设备管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Equipment Table Section -->
+    <section id="equipment-list-section" class="equipment-list-section section">
+      <div class="container" data-aos="fade-up" style="max-width: 1800px;"> <!-- 设置容器的最大宽度 -->
+        <div class="d-flex justify-content-between mb-4"> <!-- 增加间距 -->
+          {% if user_has_permission %}
+            <button id="add-row" class="btn btn-primary btn-lg shadow-sm"> <!-- 美化按钮 -->
+              <i class="fas fa-plus-circle me-1"></i>新增设备
+            </button>
+          {% endif %}
+          <div class="search-container"> <!-- 美化搜索框 -->
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="search-input" class="form-control form-control-lg shadow-sm" 
+                   placeholder="搜索设备..." style="width: 300px; padding-left: 40px;">
+          </div>
+        </div>
+        <div class="card shadow"> <!-- 添加阴影效果 -->
+          <div class="table-responsive" style="max-height: 600px;">
+            <table id="equipment-table" class="table table-hover table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="text-align: center;width: 3%;">序号</th>
+                  <th style="text-align: center;width: 8%;">设备编号</th>
+                  <th style="text-align: center;width: 16%;">设备名称</th>
+                  <th style="text-align: center;width: 8%;">设备类型</th>
+                  <th style="text-align: center;width: 5%;">设备分类</th>
+                  <th style="text-align: center;width: 5%;">负责人</th>
+                  <th style="text-align: center;width: 6%;">等待费用</th>
+                  <th style="text-align: center;width: 6%;">调试费用</th>
+                  <th style="text-align: center;width: 6%;">运行费用</th>
+                  <th style="text-align: center;width: 28%;">备注</th>
+                  {% if user_has_permission %}
+                    <th style="text-align: center;">操作</th>
+                  {% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for equipment in equipment_list %}
+                <tr class="equipment-row"> <!-- 添加类名用于高亮 -->
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ equipment.equipment_id }}</td>
+                  <td>{{ equipment.name }}</td>
+                  <td>{{ equipment.type }}</td>
+                  <td>{{ equipment.usage_frequency }}</td>
+                  <td>{{ equipment.responsible_person }}</td>
+                  <td>{{ equipment.waiting_cost }}</td>
+                  <td>{{ equipment.debugging_cost }}</td>
+                  <td>{{ equipment.operating_cost }}</td>
+                  <td>{{ equipment.remark }}</td>
+                  {% if user_has_permission %}
+                  <td>
+                    <button class="btn btn-sm btn-info edit-btn shadow-sm">
+                      <i class="fas fa-edit me-1"></i>编辑
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-btn shadow-sm">
+                      <i class="fas fa-trash-alt me-1"></i>删除
+                    </button>
+                  </td>
+                  {% endif %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section><!-- /Equipment Table Section -->
+</main>
+
+{% if error_message %}
+<script>
+    alert("{{ error_message }}");
+</script>
+{% endif %}
+
+<!-- 添加样式 -->
+<style>
+  .search-container {
+    position: relative;
+  }
+  
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+  }
+  
+  .equipment-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .equipment-row:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .equipment-row.selected {
+    background-color: #e7f1ff !important;
+  }
+  
+  .btn {
+    transition: all 0.2s;
+  }
+  
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+  
+  .table-responsive {
+    border-radius: 0.375rem;
+    max-height: 600px;
+    overflow: auto;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+  }
+  
+  #equipment-table {
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+    background: white;
+  }
+  
+  #equipment-table thead th {
+    position: sticky;
+    top: 0;
+    background: linear-gradient(to bottom, #f8f9fa, #f1f3f5);
+    font-weight: 600;
+    z-index: 1;
+    padding: 15px 10px;
+    border-bottom: 2px solid #dee2e6;
+    color: #495057;
+    text-transform: uppercase;
+    font-size: 0.9em;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  #equipment-table tbody td {
+    padding: 12px 10px;
+    vertical-align: middle;
+    border: 1px solid #e9ecef;
+    color: #495057;
+    font-size: 0.95em;
+  }
+
+  .equipment-row {
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .equipment-row:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .equipment-row.selected {
+    background-color: #e7f1ff !important;
+    border-left: 3px solid #0d6efd;
+  }
+
+  /* 按钮样式优化 */
+  .btn-sm {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    margin: 0 2px;
+  }
+
+  .btn-info {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+  }
+
+  .btn-info:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+  }
+
+  /* 自定义滚动条 */
+  .table-responsive::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  .table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+
+  /* 表格单元格对齐方式 */
+  #equipment-table td:first-child,
+  #equipment-table td:nth-child(6),
+  #equipment-table td:nth-child(7),
+  #equipment-table td:nth-child(8),
+  #equipment-table td:nth-child(9) {
+    text-align: center;
+  }
+
+  /* 数字列的样式 */
+  #equipment-table td:nth-child(7),
+  #equipment-table td:nth-child(8),
+  #equipment-table td:nth-child(9) {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9em;
+  }
+
+  /* 表格边框美化 */
+  .card {
+    border-radius: 0.75rem;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM fully loaded and parsed');
+
+        // 搜索功能
+        document.getElementById('search-input').addEventListener('keyup', function () {
+            let searchValue = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#equipment-table tbody tr');
+            rows.forEach(row => {
+                let cells = Array.from(row.cells).map(cell => cell.innerText.toLowerCase());
+                let match = cells.some(cellText => cellText.includes(searchValue));
+                row.style.display = match ? '' : 'none';
+            });
+        });
+
+        // 添加行
+        document.getElementById('add-row').addEventListener('click', function () {
+            let table = document.getElementById('equipment-table').getElementsByTagName('tbody')[0];
+            let newRow = table.insertRow();
+            newRow.innerHTML = `
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td contenteditable="true"></td>
+                <td>
+                    <button class="btn btn-sm btn-success save-btn">保存</button>
+                    <button class="btn btn-sm btn-danger delete-btn">删除</button>
+                </td>`;
+            console.log('New row added');
+        });
+
+        // 编辑和删除行
+        document.getElementById('equipment-table').addEventListener('click', function (event) {
+            let target = event.target;
+            console.log('Clicked button:', target);
+            if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+                let row = target.closest('tr');
+                // 只设置需要编辑的单元格为可编辑状态，跳过序号(第0列)和设备编号(第1列)、操作列(最后一列)
+                for (let i = 2; i < row.cells.length - 1; i++) {
+                    row.cells[i].setAttribute('contenteditable', 'true');
+                }
+                let editButton = target.classList.contains('edit-btn') ? target : target.closest('.edit-btn');
+                editButton.innerHTML = '<i class="fas fa-save me-1"></i>保存';
+                editButton.classList.remove('edit-btn', 'btn-info');
+                editButton.classList.add('save-btn', 'btn-success');
+            } else if (target.classList.contains('save-btn') || target.closest('.save-btn')) {
+                let row = target.closest('tr');
+                // 禁用所有单元格的编辑状态
+                for (let i = 2; i < row.cells.length - 1; i++) {
+                    row.cells[i].setAttribute('contenteditable', 'false');
+                }
+                
+                let data = {
+                    equipment_id: row.cells[1].innerText.trim(),
+                    name: row.cells[2].innerText.trim(),
+                    type: row.cells[3].innerText.trim(),
+                    usage_frequency: row.cells[4].innerText.trim(),
+                    responsible_person: row.cells[5].innerText.trim(),
+                    waiting_cost: row.cells[6].innerText.trim(),
+                    debugging_cost: row.cells[7].innerText.trim(),
+                    operating_cost: row.cells[8].innerText.trim(),
+                    remark: row.cells[9].innerText.trim()
+                };
+
+                // 验证必填字段
+                if (!data.equipment_id || !data.name) {
+                    alert('设备编号和设备名称为必填项！');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{% url 'equipment:save_equipment' %}",
+                    method: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function (response) {
+                        if (response.status === "success") {
+                            console.log('保存成功', response);
+                            let saveButton = target.classList.contains('save-btn') ? target : target.closest('.save-btn');
+                            saveButton.innerHTML = '<i class="fas fa-edit me-1"></i>编辑';
+                            saveButton.classList.remove('save-btn', 'btn-success');
+                            saveButton.classList.add('edit-btn', 'btn-info');
+                            
+                            // 禁用所有单元格的编辑状态
+                            for (let i = 1; i < row.cells.length - 1; i++) {
+                                row.cells[i].setAttribute('contenteditable', 'false');
+                            }
+                        } else {
+                            alert('保存失败: ' + response.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('保存失败', status, error);
+                        alert('保存失败: ' + (xhr.responseJSON?.message || '未知错误'));
+                    }
+                });
+            } else if (target.classList.contains('delete-btn')) {
+                let row = target.closest('tr');
+                let equipment_id = row.cells[1].innerText.trim();
+                
+                if (confirm('确定要删除这条记录吗？')) {
+                    $.ajax({
+                        url: "{% url 'equipment:delete_equipment' %}",
+                        method: "POST",
+                        data: JSON.stringify({
+                            equipment_id: equipment_id
+                        }),
+                        contentType: "application/json",
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        success: function (response) {
+                            if (response.status === "success") {
+                                row.remove();
+                                console.log('删除成功');
+                            } else {
+                                alert('删除失败: ' + response.message);
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('删除失败:', status, error);
+                            alert('删除失败: ' + (xhr.responseJSON?.message || '未知错误'));
+                        }
+                    });
+                }
+            }
+        });
+
+        // 添加行点击高亮功能
+        const tbody = document.querySelector('#equipment-table tbody');
+        tbody.addEventListener('click', function(e) {
+            const row = e.target.closest('tr');
+            if (row) {
+                // 移除其他行的选中状态
+                tbody.querySelectorAll('tr').forEach(tr => {
+                    tr.classList.remove('selected');
+                });
+                // 添加当前行的选中状态
+                row.classList.add('selected');
+            }
+        });
+    });
+</script>
+{% endblock %}

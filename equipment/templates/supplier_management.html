@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="main">
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/info_banner.png' %});">
+        <div class="container-fluid position-relative">
+            <h1>{{ page_title }}</h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a href="/">首页</a></li>
+                    <li class="current"><a href="{% url 'equipment:supplier_management' %}">设备管理 / </a>{{ page_title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Content Section -->
+    <div class="container-fluid mt-4">
+        <div class="card">
+            <div class="card-body">
+                {% if can_manage %}
+                <div class="d-flex justify-content-between mb-3">
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
+                        <i class="fas fa-building mr-1"></i> 添加供应商
+                    </button>
+                    <div class="search-box" style="width: 300px;">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" id="searchInput" class="form-control" placeholder="搜索供应商...">
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="search-box mb-3" style="width: 300px;">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="搜索供应商...">
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>供应商名称</th>
+                                <th>联系人</th>
+                                <th>联系电话</th>
+                                <th>供应商地址</th>
+                                <th>维修范围</th>
+                                <th>维修台架</th>
+                                {% if can_manage %}
+                                <th>操作</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for supplier in suppliers %}
+                            <tr data-id="{{ supplier.id }}">
+                                <td>{{ forloop.counter }}</td>
+                                <td style="color: #007bff;">
+                                    <span class="display-value">{{ supplier.name }}</span>
+                                    <input type="text" class="form-control edit-input" value="{{ supplier.name }}" style="display: none;">
+                                </td>
+                                <td>
+                                    <span class="display-value">{{ supplier.contact_person }}</span>
+                                    <input type="text" class="form-control edit-input" value="{{ supplier.contact_person }}" style="display: none;">
+                                </td>
+                                <td>
+                                    <span class="display-value">{{ supplier.contact_phone }}</span>
+                                    <input type="text" class="form-control edit-input" value="{{ supplier.contact_phone }}" style="display: none;">
+                                </td>
+                                <td>
+                                    <span class="display-value">{{ supplier.address }}</span>
+                                    <textarea class="form-control edit-input" style="display: none;">{{ supplier.address }}</textarea>
+                                </td>
+                                <td>
+                                    <span class="display-value">{{ supplier.repair_scope }}</span>
+                                    <textarea class="form-control edit-input" style="display: none;">{{ supplier.repair_scope }}</textarea>
+                                </td>
+                                <td>
+                                    <span class="display-value">{{ supplier.repair_equipment }}</span>
+                                    <textarea class="form-control edit-input" style="display: none;">{{ supplier.repair_equipment }}</textarea>
+                                </td>
+                                {% if can_manage %}
+                                <td>
+                                    <button class="btn btn-sm btn-primary edit-btn" onclick="toggleEdit(this)">编辑</button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteSupplier({{ supplier.id }})">删除</button>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="{% if can_manage %}8{% else %}7{% endif %}" class="text-center">暂无供应商信息</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if can_manage %}
+                <!-- Add Supplier Modal -->
+                <div class="modal fade" id="addSupplierModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="add">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">添加供应商</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">供应商名称</label>
+                                        <input type="text" class="form-control" name="name" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">联系人</label>
+                                        <input type="text" class="form-control" name="contact_person" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">联系电话</label>
+                                        <input type="text" class="form-control" name="contact_phone" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">供应商地址</label>
+                                        <textarea class="form-control" name="address" required></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">维修范围</label>
+                                        <textarea class="form-control" name="repair_scope" required></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">维修台架</label>
+                                        <textarea class="form-control" name="repair_equipment" required></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                    <button type="submit" class="btn btn-primary">保存</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Supplier Modal -->
+                <div class="modal fade" id="editSupplierModal" tabindex="-1">
+                    <!-- Similar structure as add modal, with pre-filled values -->
+                </div>
+
+                <!-- Delete Confirmation Modal -->
+                <div class="modal fade" id="deleteSupplierModal" tabindex="-1">
+                    <!-- Delete confirmation dialog -->
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</main>
+
+{% if can_manage %}
+<script>
+function toggleEdit(btn) {
+    const row = btn.closest('tr');
+    const displayValues = row.querySelectorAll('.display-value');
+    const editInputs = row.querySelectorAll('.edit-input');
+    
+    if (btn.textContent === '编辑') {
+        // 切换到编辑模式
+        displayValues.forEach(span => span.style.display = 'none');
+        editInputs.forEach(input => input.style.display = 'block');
+        btn.textContent = '保存';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+    } else {
+        // 保存更改
+        const supplierId = row.dataset.id;
+        const formData = {
+            action: 'update',
+            supplier_id: supplierId,
+            name: editInputs[0].value,
+            contact_person: editInputs[1].value,
+            contact_phone: editInputs[2].value,
+            address: editInputs[3].value,
+            repair_scope: editInputs[4].value,
+            repair_equipment: editInputs[5].value
+        };
+
+        // 创建表单并提交
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `{% csrf_token %}`;
+        
+        // 添加表单字段
+        Object.keys(formData).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = formData[key];
+            form.appendChild(input);
+        });
+
+        // 提交表单
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function deleteSupplier(id) {
+    if (confirm('确定要删除这个供应商吗？')) {
+        let form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="supplier_id" value="${id}">
+        `;
+        document.body.append(form);
+        form.submit();
+    }
+}
+</script>
+{% endif %}
+
+<!-- 在文件末尾添加搜索功能的 JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const tableRows = document.querySelectorAll('.table tbody tr');
+
+    searchInput.addEventListener('input', function() {
+        const searchText = this.value.toLowerCase();
+        
+        tableRows.forEach(row => {
+            if (row.querySelector('td[colspan]')) {
+                // 跳过空数据提示行
+                return;
+            }
+            
+            const text = row.textContent.toLowerCase();
+            if (text.includes(searchText)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

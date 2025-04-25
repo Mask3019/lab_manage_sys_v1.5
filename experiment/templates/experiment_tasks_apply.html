@@ -1,0 +1,1337 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/ban4.png' %});">
+      <div class="container position-relative text-center">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs d-inline-block">
+          <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">首页</a></li>
+            <li class="breadcrumb-item"><a href={% url 'experiment:experiment_tasks_apply' %}>试验管理</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Starter Section Section -->
+    <section id="starter-section" class="starter-section section py-5">
+
+      <div class="container" data-aos="fade-up">
+        <div class="row justify-content-center">
+          <!-- 树控件列 -->
+          <div class="col-md-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0 card-title">已申请任务清单</h5>
+              </div>
+              <div class="card-body">
+                <!-- 年份筛选下拉框 -->
+                <div class="filter-section mb-3">
+                  <div class="input-group year-filter">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">
+                        <i class="fas fa-calendar-alt"></i>
+                      </span>
+                    </div>
+                    <select id="yearFilter" class="form-control">
+                      <option value="">所有年份</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <!-- 月份筛选下拉框 -->
+                <div class="filter-section mb-3">
+                  <div class="input-group month-filter">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">
+                        <i class="fas fa-calendar-day"></i>
+                      </span>
+                    </div>
+                    <select id="monthFilter" class="form-control">
+                      <option value="">所有月份</option>
+                      <option value="01">1月</option>
+                      <option value="02">2月</option>
+                      <option value="03">3月</option>
+                      <option value="04">4月</option>
+                      <option value="05">5月</option>
+                      <option value="06">6月</option>
+                      <option value="07">7月</option>
+                      <option value="08">8月</option>
+                      <option value="09">9月</option>
+                      <option value="10">10月</option>
+                      <option value="11">11月</option>
+                      <option value="12">12月</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- 项目代号搜索框 -->
+                <div class="filter-section mb-3">
+                  <div class="input-group">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                      </span>
+                    </div>
+                    <input type="text" class="form-control" id="projectCodeSearch" placeholder="搜索项目代号">
+                  </div>
+                </div>
+
+                <!-- 树控件容器 -->
+                <div id="tree-container">
+                  <ul id="tree">
+                    {% for year, months in years_data.items %}
+                      <li><span class="caret">{{ year }}年</span>
+                        <ul class="nested">
+                          {% for month, tasks in months.items %}
+                            <li><span class="caret">{{ month }}月</span>
+                              <ul class="nested">
+                                {% for task in tasks %}
+                                  <li class="task-item" 
+                                      data-project-code="{{ task.project_code }}"
+                                      data-test-content="{{ task.test_content }}">
+                                    {{ task.task_number }} ({{ task.project_code }})
+                                  </li>
+                                {% endfor %}
+                              </ul>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 表单列 -->
+          <div class="col-md-8">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0 card-title text-center w-100">
+                  <i class="fas fa-clipboard-list mr-2"></i>
+                  检测任务单
+                </h5>
+              </div>
+              <div class="card-body">
+                <form id="taskForm">
+                  {% if not can_edit %}
+                  <div class="alert alert-warning" role="alert">
+                    您当前只有查看权限，如需修改请联系综合管理员
+                  </div>
+                  {% endif %}
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="taskNumber" class="col-form-label text-right pr-2 custom-width">任务单号</label>
+                    <div class="col-sm-4" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="taskNumber" name="taskNumber" placeholder="输入任务单号" style="font-weight: bold; color: #007bff;" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                    <label for="review" class="col-form-label text-right pr-2 custom-width"></label>
+                    <div class="col-sm-3" style="flex-grow: 1;">
+                    </div>
+                  </div>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="department" class="col-form-label text-right pr-2 custom-width">委托部门</label>
+                    <div class="col-sm-4" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="department" name="department" placeholder="输入部门/科室" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                    <label for="entrusted" class="col-form-label text-right pr-2 custom-width">委托人</label>
+                    <div class="col-sm-3" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="entrusted" name="entrusted" placeholder="输入委托人" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                  </div>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="projectName" class="col-form-label text-right pr-2 custom-width">项目类型</label>
+                    <div class="col-sm-4" style="flex-grow: 1;">
+                      <select class="form-control form-control-sm" id="projectName" name="projectName" {% if not can_edit %}disabled{% endif %}>
+                        <option value="">请选择项目类型</option>
+                        <option value="纵置手动">纵置手动</option>
+                        <option value="纵置混动">纵置混动</option>
+                        <option value="横置手动">横置手动</option>
+                        <option value="横置混动">横置混动</option>
+                        <option value="AT">AT</option>
+                        <option value="DCT">DCT</option>
+                        <option value="CVT">CVT</option>
+                        <option value="HSR">HSR</option>
+                        <option value="电驱动">电驱动</option>
+                        <option value="other">其他</option>
+                      </select>
+                    </div>
+                    <label for="projectCode" class="col-form-label text-right pr-2 custom-width">项目代号</label>
+                    <div class="col-sm-3" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="projectCode" name="projectCode" placeholder="输入项目代号" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                  </div>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="sampleName" class="col-form-label text-right pr-2 custom-width">样件类型</label>
+                    <div class="col-sm-4" style="flex-grow: 1;">                     
+                      <select class="form-control form-control-sm" id="sampleName" name="sampleName" {% if not can_edit %}disabled{% endif %}>
+                        <option value="">请选择样件类型</option>
+                        <option value="变速器总成">变速器总成</option>
+                        <option value="减速器总成">减速器总成</option>
+                        <option value="减速器总成">电驱动总成</option>
+                        <option value="MCU总成">MCU总成</option>
+                        <option value="HCU总成">HCU总成</option>
+                        <option value="零部件">零部件</option>
+                        <option value="其他">其他</option>
+                      </select>
+                    </div>
+                    <label for="sampleStage" class="col-form-label text-right pr-2 custom-width">样品阶段</label>
+                    <div class="col-sm-3" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="sampleStage" name="sampleStage" placeholder="输入样品状态" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                  </div>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="sampleNumber" class="col-form-label text-right pr-2 custom-width">样品数量</label>
+                    <div class="col-sm-4" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="sampleNumber" name="sampleNumber" placeholder="输入样品数量" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                    <label for="sampleCode" class="col-form-label text-right pr-2 custom-width">样品编号</label>
+                    <div class="col-sm-3" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="sampleCode" name="sampleCode" placeholder="输入样品编号" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                  </div>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="isSeparated" class="col-form-label text-right pr-2 custom-width">是否分包</label>
+                    <div class="col-sm-2" style="flex-grow: 1;">
+                      <select id="isSeparated" name="isSeparated" class="form-control form-control-sm" {% if not can_edit %}disabled{% endif %}>
+                        <option>是</option>
+                        <option selected>否</option>
+                      </select>
+                    </div>
+                    <label for="isRequiredReport" class="col-form-label text-right pr-2 custom-width">是否要报告</label>
+                    <div class="col-sm-2" style="flex-grow: 1;">
+                      <select id="isRequiredReport" name="isRequiredReport" class="form-control form-control-sm" {% if not can_edit %}disabled{% endif %}>
+                        <option selected>是</option>
+                        <option>否</option>
+                      </select>
+                    </div>
+                    <label for="savePeriod" class="col-form-label text-right pr-2 custom-width">样品保存期</label>
+                    <div class="col-sm-2" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="savePeriod" name="savePeriod" placeholder="输入保存时长" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                  </div>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="storage" class="col-form-label text-right pr-2 custom-width">试后油品</label>
+                    <div class="col-sm-2" style="flex-grow: 1;">
+                      <select id="storage" name="storage" class="form-control form-control-sm" {% if not can_edit %}disabled{% endif %}>
+                        <option selected>不要保存</option>
+                        <option>需要保存</option>
+                      </select>
+                    </div>
+                    <label for="oilAmount" class="col-form-label text-right pr-2 custom-width">油量</label>
+                    <div class="col-sm-2" style="flex-grow: 1;">
+                      <input type="text" class="form-control form-control-sm" id="oilAmount" name="oilAmount" placeholder="0ml" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                    <label for="isSeparated" class="col-form-label text-right pr-2 custom-width">是否判定</label>
+                    <div class="col-sm-2" style="flex-grow: 1;">
+                      <select id="isSeparated" name="isSeparated" class="form-control form-control-sm" {% if not can_edit %}disabled{% endif %}>
+                        <option>是</option>
+                        <option selected>否</option>
+                      </select>
+                    </div>
+                  </div>
+
+                   <!-- 分隔线 -->
+                  <hr>
+
+                  <div class="form-group row">
+                    <label for="testContent" class="col-form-label text-right pr-2 custom-label-width">试验内容、目的与要求</label>
+                  </div>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <div class="col-sm-10" style="flex-grow: 1;">
+                      <textarea class="form-control form-control-sm" id="testContent" name="testContent" rows="5" placeholder="输入试验内容，如总成疲劳寿命" {% if not can_edit %}disabled{% endif %}></textarea>
+                    </div>
+                  </div>
+
+                  <!-- 添加新的 textarea -->
+                  <div class="form-group row d-flex align-items-center">
+                    <div class="col-sm-10" style="flex-grow: 1;">
+                      <textarea class="form-control form-control-sm" id="testContentExtra" name="testContentExtra" rows="5" placeholder="输入目的和要求，如验证一档主动齿的强度" {% if not can_edit %}disabled{% endif %}></textarea>
+                    </div>
+                  </div>
+
+                   <!-- 分隔线 -->
+                  <hr>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="isStandard" class="col-form-label text-right pr-2 custom-width">试验依据</label>
+                    <div class="col-sm-10">
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="standard" name="testBasis" value="standard" {% if not can_edit %}disabled{% endif %}>
+                        <label class="form-check-label" for="standard">标准</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="plan" name="testBasis" value="plan" {% if not can_edit %}disabled{% endif %}>
+                        <label class="form-check-label" for="plan">试验大纲</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="technical" name="testBasis" value="technical" {% if not can_edit %}disabled{% endif %}>
+                        <label class="form-check-label" for="technical">技术要求</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="simple" name="testBasis" value="simple" {% if not can_edit %}disabled{% endif %}>
+                        <label class="form-check-label" for="simple">偏离单</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="others" name="testBasis" value="others" {% if not can_edit %}disabled{% endif %}>
+                        <label class="form-check-label" for="others">其他</label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <div class="col-sm-10" style="flex-grow: 1;">
+                      <textarea class="form-control form-control-sm" id="testSpecs" name="testSpecs" rows="3" placeholder="输入大纲编号  输入试验大纲或技术要求名称" {% if not can_edit %}disabled{% endif %}></textarea>
+                    </div>
+                  </div>
+
+                  <!-- 分隔线 -->
+                  <hr>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="debug" class="col-form-label text-right pr-2 custom-width6">调试的时长</label>
+                    <div class="col-sm-2">
+                      <input type="text" class="form-control form-control-sm" id="debug" name="debug" placeholder="预估调试时间（h）" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                    <label for="review" class="col-form-label text-right pr-2 custom-width1"></label>
+                    <label for="run" class="col-form-label text-right pr-2 custom-width6">试验的时长</label>
+                    <div class="col-sm-2">
+                      <input type="text" class="form-control form-control-sm" id="run" name="run" placeholder="预估试验时间（h）" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                    <label for="review" class="col-form-label text-right pr-2 custom-width1"></label>
+                    <label for="cost" class="col-form-label text-right pr-2 custom-width6">试验的费用</label>
+                    <div class="col-sm-2">
+                      <input type="text" class="form-control form-control-sm" id="cost" name="cost" placeholder="预估试验费用（元）" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                  </div>
+
+                  <!-- 分隔线 -->
+                  <hr>
+
+                  <div class="form-group row d-flex align-items-center">
+                    <label for="confirmation" class="col-form-label text-right pr-2 custom-width6">任务的来源</label>
+                    <div class="col-sm-2">
+                      <input type="text" class="form-control form-control-sm" id="confirmation" name="confirmation" placeholder="DVP or 非DVP" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                    <label for="review" class="col-form-label text-right pr-2 custom-width1"></label>
+                    <label for="testtype" class="col-form-label text-right pr-2 custom-width6">业务的类型</label>
+                    <div class="col-sm-2">
+                      <input type="text" class="form-control form-control-sm" id="testtype" name="testtype" placeholder="台架or整车" {% if not can_edit %}disabled{% endif %}>
+                    </div>
+                  </div>
+
+                  <!-- 修改提交按钮部分 -->
+                  <div class="button-container">
+                    <div class="left-buttons">
+                      <input type="file" id="pdfInput" accept=".pdf" style="display: none;" />
+                      <button type="button" class="submit-btn import-btn" onclick="document.getElementById('pdfInput').click()" {% if not can_edit %}disabled{% endif %}>
+                        <i class="fas fa-file-import"></i>
+                        导入任务单
+                      </button>
+                    </div>
+                    <div class="right-buttons">
+                      <button type="submit" class="submit-btn" {% if not can_edit %}disabled{% endif %}>
+                        <i class="fas fa-paper-plane"></i>
+                        录入申请
+                      </button>
+                      <button type="button" class="submit-btn update-btn" {% if not can_edit %}disabled{% endif %}>
+                        <i class="fas fa-sync-alt"></i>
+                        更新申请
+                      </button>
+                      <button type="button" class="submit-btn delete-btn" {% if not can_edit %}disabled{% endif %}>
+                        <i class="fas fa-trash-alt"></i>
+                        删除申请
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section><!-- /Starter Section Section -->
+
+  </main>
+
+<style>
+  .card-header {
+    background-color: #007bff !important;  /* 强制设置头部背景色为蓝色 */
+    color: white ;  /* 强制设置头部文字为白色 */
+    white-space: nowrap;  /* 确保文字不换行 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .card-title {
+    color: white !important;  /* 确保"检测任务单"字样为白色 */
+    white-space: nowrap;  /* 确保文字不换行 */
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-title i {
+    margin-right: 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .badge-light {
+    background-color: #f8f9fa;  /* 保持任务单号的背景色 */
+    color: #343a40;  /* 任务单号的文字颜色 */
+  }
+
+  .card {
+    width: 100%;  /* 确保卡片宽度与内容一致 */
+  }
+
+  .form-group.row {
+    margin-bottom: 0.5rem; /* 缩小每个输入行的间距，使页面更加紧凑 */
+  }
+
+  .form-control-sm {
+    min-width: 100px; /* 确保输入框有最小宽度，以避免过小 */
+  }
+
+  /* 自定义标签宽度 */
+  .custom-width {
+    width: 110px; /* 设置标签宽度为120px，适应您的要求 */
+  }
+
+  /* 自定义标签宽度 */
+  .custom-width1 {
+    width: 50px; /* 设置标签宽度为50px，适应您的要求 */
+  }
+
+  /* 自定义标签宽度 */
+  .custom-width6 {
+    width: 120px; /* 设置标签宽度为120px，适应您的要求 */
+  }
+
+  /* 树控件样式 */
+  #tree ul {
+    list-style-type: none;
+  }
+  #tree li {
+    padding: 5px;
+    margin-left: 10px;
+  }
+  .caret {
+    cursor: pointer;
+    user-select: none; /* 防止用户选择文本 */
+  }
+  .caret::before {
+    content: "\25B6"; /* 黑色三角形符号 */
+    color: black;
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .caret-down::before {
+    transform: rotate(90deg); /* 旋转箭头 */
+  }
+  .nested {
+    display: none; /* 默认隐藏 */
+  }
+  .active {
+    display: block; /* 显示子节点 */
+  }
+
+  /* 优化卡片和容器高度 */
+  .card {
+    width: 100%;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  /* 优化表单组间距 */
+  .form-group.row {
+    margin-bottom: 0.4rem;
+  }
+
+  /* 优化输入框大小 */
+  .form-control-sm {
+    min-width: 100px;
+    height: calc(1.5em + 0.5rem + 2px);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  /* 优化文本域高度 */
+  textarea.form-control-sm {
+    min-height: 80px;
+    max-height: 120px;
+  }
+
+  /* 优化分隔线间距 */
+  hr {
+    margin: 0.75rem 0;
+    opacity: 0.15;
+  }
+
+  /* 优化提交按钮 */
+  .submit-btn {
+    background: linear-gradient(to right, #1e88e5, #1565c0);
+    border: none;
+    padding: 0.4rem 1.5rem;
+    font-size: 0.95rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white !important; /* 强制设置按钮文字为白色 */
+  }
+
+  .submit-btn:hover {
+    background: linear-gradient(to right, #1565c0, #0d47a1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    color: white !important; /* 悬停时保持文字为白色 */
+  }
+
+  .submit-btn i {
+    font-size: 1rem;
+    color: white !important; /* 强制设置图标为白色 */
+  }
+
+  /* 优化标签样式 */
+  .col-form-label {
+    padding-top: calc(0.25rem + 1px);
+    padding-bottom: calc(0.25rem + 1px);
+    font-size: 0.875rem;
+  }
+
+  /* 优化复选框组样式 */
+  .form-check-inline {
+    margin-right: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  /* 响应式调整 */
+  @media (max-width: 768px) {
+    .card-body {
+      padding: 0.75rem;
+    }
+    
+    .form-group.row {
+      margin-bottom: 0.3rem;
+    }
+  }
+
+  /* 调整右侧容器宽度 */
+  .col-md-9 {
+    max-width: 70%;  /* 减小右侧容器宽度 */
+  }
+
+  /* 调整卡片样式 */
+  .card {
+    width: 100%;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    margin-bottom: 1rem;
+  }
+
+  .card-body {
+    padding: 0.8rem;  /* 减小内边距 */
+  }
+
+  /* 调整表单组件尺寸 */
+  .form-group.row {
+    margin-bottom: 0.35rem;  /* 减小组件间距 */
+  }
+
+  .col-sm-2, .col-sm-3, .col-sm-4 {
+    padding-right: 0.4rem;
+    padding-left: 0.4rem;
+  }
+
+  /* 调整输入框尺寸但保持字体大小 */
+  .form-control-sm {
+    min-width: 90px;  /* 减小最小宽度 */
+    height: calc(1.5em + 0.4rem + 2px);  /* 减小高度 */
+    padding: 0.2rem 0.4rem;
+    font-size: 0.875rem;  /* 保持字体大小 */
+  }
+
+  /* 调整标签宽度但保持字体大小 */
+  .custom-width {
+    width: 95px;  /* 减小宽度 */
+    font-size: 0.875rem;  /* 保持字体大小 */
+  }
+
+  .custom-width1 {
+    width: 40px;
+  }
+
+  .custom-width6 {
+    width: 100px;
+    font-size: 0.875rem;  /* 保持字体大小 */
+  }
+
+  /* 调整文本域高度 */
+  textarea.form-control-sm {
+    min-height: 50px;
+    max-height: 80px;
+  }
+
+  /* 调整复选框组样式 */
+  .form-check-inline {
+    margin-right: 0.8rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .form-check-label {
+    font-size: 0.875rem;  /* 保持字体大小 */
+  }
+
+  /* 调整分隔线间距 */
+  hr {
+    margin: 0.6rem 0;
+    opacity: 0.15;
+  }
+
+  /* 调整提交按钮尺寸但保持字体大小 */
+  .submit-btn {
+    padding: 0.35rem 1.2rem;
+    font-size: 0.875rem;  /* 保持字体大小 */
+  }
+
+  /* 按钮组样式 */
+  .button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  /* 导入按钮样式 */
+  .import-btn {
+    background: linear-gradient(to right, #28a745, #218838);
+  }
+
+  .import-btn:hover {
+    background: linear-gradient(to right, #218838, #1e7e34);
+  }
+
+  /* 更新按钮样式 */
+  .update-btn {
+    background: linear-gradient(to right, #ffc107, #d39e00);
+  }
+
+  .update-btn:hover {
+    background: linear-gradient(to right, #d39e00, #ba8b00);
+  }
+
+  /* 删除按钮样式 */
+  .delete-btn {
+    background: linear-gradient(to right, #dc3545, #c82333);
+  }
+
+  .delete-btn:hover {
+    background: linear-gradient(to right, #c82333, #bd2130);
+  }
+
+  /* 年份筛选器样式 */
+  .year-filter .input-group-text,
+  .month-filter .input-group-text {
+    background: linear-gradient(to right, #1e88e5, #1565c0);
+    border: none;
+    color: white;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .year-filter .input-group-prepend,
+  .month-filter .input-group-prepend {
+    margin-right: -1px;
+  }
+
+  .year-filter select,
+  .month-filter select {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  /* 调整年份筛选器样式 */
+  .year-filter,
+  .month-filter {
+    padding: 0.5rem 0;
+  }
+
+  .year-filter .input-group,
+  .month-filter .input-group {
+    height: 34px;
+  }
+
+  .year-filter .input-group-text,
+  .month-filter .input-group-text {
+    background: linear-gradient(to right, #1e88e5, #1565c0);
+    border: none;
+    color: white;
+    padding: 0.375rem 0.75rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  .year-filter .input-group-prepend,
+  .month-filter .input-group-prepend {
+    margin-right: -1px;
+    height: 100%;
+  }
+
+  .year-filter select,
+  .month-filter select {
+    height: 100%;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  .year-filter .fas,
+  .month-filter .fas {
+    font-size: 1rem;
+  }
+
+  /* 优化树控件样式 */
+  #tree {
+    margin: 0;
+    padding: 0;
+  }
+
+  #tree li {
+    padding: 0.3rem 0;
+  }
+
+  #tree .caret {
+    padding: 0.2rem 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .filter-section {
+    margin-bottom: 1rem;
+  }
+
+  .filter-section .input-group-text {
+    background: linear-gradient(to right, #1e88e5, #1565c0);
+    border: none;
+    color: white;
+  }
+
+  .filter-section input::placeholder {
+    font-size: 0.875rem;
+  }
+
+  .task-item {
+    padding: 0.25rem 0;
+    cursor: pointer;
+  }
+
+  /* 按钮容器样式 */
+  .button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+  }
+
+  .left-buttons, .right-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  /* 修改图标和输入框对齐方式 */
+  .filter-section .input-group {
+    height: 36px;
+    align-items: center;
+  }
+
+  .filter-section .input-group-text {
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;  /* 固定图标容器宽度 */
+  }
+
+  .filter-section .input-group-prepend {
+    display: flex;
+    align-items: center;
+  }
+
+  .filter-section input,
+  .filter-section select {
+    height: 34px;  /* 统一高度 */
+  }
+
+  /* 添加任务单号输入框的特定样式 */
+  #taskNumber {
+    font-weight: bold;
+    color: #007bff;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var toggler = document.getElementsByClassName("caret");
+    
+    // 为每个节点添加点击事件
+    for (var i = 0; i < toggler.length; i++) {
+      toggler[i].addEventListener("click", function() {
+        this.parentElement.querySelector(".nested").classList.toggle("active");
+        this.classList.toggle("caret-down");
+      });
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    const projectNameSelect = document.getElementById('projectName');
+    
+    projectNameSelect.addEventListener('change', function() {
+        if (this.value === 'other') {
+            const customProjectType = prompt('请输入项目类型：');
+            if (customProjectType) {
+                // 创建新的选项
+                const newOption = new Option(customProjectType, 'custom_' + customProjectType);
+                // 添加到下拉框
+                this.add(newOption);
+                // 选中新创建的选项
+                this.value = newOption.value;
+            } else {
+                // 如果用户取消输入，重置选择
+                this.value = '';
+            }
+        }
+    });
+  });
+
+  function validateForm() {
+    const requiredFields = {
+        'taskNumber': '任务单号',
+        'department': '委托部门',
+        'entrusted': '委托人',
+        'projectName': '项目类型',
+        'projectCode': '项目代号',
+        'sampleName': '样品名称',
+        'sampleStage': '样品阶段',
+        'sampleNumber': '样品数量',
+        'sampleCode': '样品编号',
+        'testContent': '试验内容',
+        'testContentExtra': '试验目的和要求',
+        'debug': '预估调试时长',
+        'run': '预估试验时长',
+        'cost': '预估试验费用'
+    };
+
+    for (let [id, name] of Object.entries(requiredFields)) {
+        const element = document.getElementById(id);
+        if (!element.value) {
+            alert(`请填写${name}`);
+            element.focus();
+            return false;
+        }
+    }
+
+    // 验证数字字段
+    const debugTime = parseFloat(document.getElementById('debug').value);
+    if (isNaN(debugTime)) {
+        alert('调试时长必须是数字');
+        return false;
+    }
+    if (debugTime > 24) {
+        alert('调试时长必须小于等于24小时');
+        return false;
+    }
+    
+    // 修改试验时长验证，允许输入带单位的时间格式
+    // 如果后端有parse_chinese_duration函数处理，前端不需要严格限制为纯数字
+    const runValue = document.getElementById('run').value;
+    if (runValue === '') {
+        alert('试验时长不能为空');
+        return false;
+    }
+    
+    // 如果是纯数字，检查是否超过24小时
+    if (!isNaN(runValue)) {
+        const runTime = parseFloat(runValue);
+        if (runTime > 24) {
+            alert('运行时长必须小于等于24小时');
+            return false;
+        }
+    }
+    
+    // 检查cost字段
+    if (isNaN(document.getElementById('cost').value)) {
+        alert('试验费用必须是数字');
+        return false;
+    }
+
+    return true;
+}
+
+document.querySelector('#taskForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+        return;
+    }
+
+    try {
+        // 创建一个新的 FormData 对象
+        const formData = new FormData();
+        
+        // 获取所有表单字段的值并添加到 FormData
+        const fields = {
+            'taskNumber': document.getElementById('taskNumber').value,
+            'department': document.getElementById('department').value,
+            'entrusted': document.getElementById('entrusted').value,
+            'projectName': document.getElementById('projectName').value,
+            'projectCode': document.getElementById('projectCode').value,
+            'sampleName': document.getElementById('sampleName').value,
+            'sampleStage': document.getElementById('sampleStage').value,
+            'sampleNumber': document.getElementById('sampleNumber').value,
+            'sampleCode': document.getElementById('sampleCode').value,
+            'isSeparated': document.getElementById('isSeparated').value,
+            'isRequiredReport': document.getElementById('isRequiredReport').value,
+            'savePeriod': document.getElementById('savePeriod').value,
+            'storage': document.getElementById('storage').value,
+            'oilAmount': document.getElementById('oilAmount').value,
+            'isJudgment': document.getElementById('isSeparated').value,
+            'testContent': document.getElementById('testContent').value,
+            'testContentExtra': document.getElementById('testContentExtra').value,
+            'testSpecs': document.getElementById('testSpecs').value,
+            'debug': document.getElementById('debug').value,
+            'run': document.getElementById('run').value,
+            'cost': document.getElementById('cost').value,
+            'confirmation': document.getElementById('confirmation').value,
+            'testtype': document.getElementById('testtype').value
+        };
+
+        // 添加所有字段到 FormData
+        for (const [key, value] of Object.entries(fields)) {
+            formData.append(key, value);
+        }
+
+        // 收集选中的试验依据复选框
+        const testBasisChecked = [];
+        document.querySelectorAll('input[name="testBasis"]:checked').forEach(checkbox => {
+            testBasisChecked.push(checkbox.value);
+        });
+        formData.append('testBasis', testBasisChecked.join(','));
+
+        // 添加 CSRF token
+        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+        console.log('Submitting form data:', Object.fromEntries(formData));
+
+        // 发送请求
+        const response = await fetch('{% url "experiment:experiment_tasks_apply" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            alert('提交成功！');
+            console.log('Success response:', data);
+            
+            // 在成功提交后刷新页面
+            window.location.reload();
+        } else {
+            console.error('Error response:', data);
+            alert('提交失败：' + data.message);
+        }
+    } catch (error) {
+        console.error('提交出错:', error);
+        alert('提交出错：' + error.message);
+    }
+});
+
+// 修复 getCookie 函数中的无限循环问题
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {  // 修复这里的循环条件
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // 获取任务单号并提取年份
+  function extractYears(taskNumbers) {
+    const years = new Set();
+    taskNumbers.forEach(taskNumber => {
+      // 直接从任务单号取前4个字符作为年份
+      const year = taskNumber.substring(0, 4);
+      if (year && year.length === 4 && !isNaN(year)) {
+        years.add(year);
+      }
+    });
+    return Array.from(years).sort().reverse();
+  }
+
+  // 初始化年份下拉框
+  function initYearFilter() {
+    const yearSelect = document.getElementById('yearFilter');
+    // 这里假设从页面上获取所有任务单号
+    const taskNumbers = Array.from(document.querySelectorAll('.task-item'))
+      .map(li => li.textContent.trim());
+    
+    const years = extractYears(taskNumbers);
+    years.forEach(year => {
+      const option = new Option(year + '年', year);
+      yearSelect.add(option);
+    });
+  }
+
+  // 添加年份筛选事件处理
+  document.getElementById('yearFilter').addEventListener('change', function(e) {
+    const selectedYear = e.target.value;
+    filterTreeItems();
+  });
+
+  // 添加月份筛选事件处理
+  document.getElementById('monthFilter').addEventListener('change', function(e) {
+    filterTreeItems();
+  });
+
+  // 综合筛选函数，同时考虑年份和月份
+  function filterTreeItems() {
+    const selectedYear = document.getElementById('yearFilter').value;
+    const selectedMonth = document.getElementById('monthFilter').value;
+    
+    // 先展开所有年节点，让所有月份可见
+    const yearNodes = document.querySelectorAll('#tree > li');
+    yearNodes.forEach(yearNode => {
+      yearNode.style.display = '';
+      const yearCaret = yearNode.querySelector('.caret');
+      const nestedUl = yearNode.querySelector('.nested');
+      if (nestedUl && !nestedUl.classList.contains('active')) {
+        nestedUl.classList.add('active');
+        if (yearCaret) yearCaret.classList.add('caret-down');
+      }
+    });
+    
+    // 根据选定的年份过滤
+    if (selectedYear) {
+      yearNodes.forEach(yearNode => {
+        // 获取年节点文本的前4个字符作为年份
+        const yearText = yearNode.querySelector('.caret').textContent.substring(0, 4);
+        if (yearText !== selectedYear) {
+          yearNode.style.display = 'none';
+        }
+      });
+    }
+    
+    // 根据选定的月份过滤
+    const monthNodes = document.querySelectorAll('#tree > li > ul > li');
+    monthNodes.forEach(monthNode => {
+      const monthText = monthNode.querySelector('.caret').textContent.slice(0, 2);
+      
+      // 如果选择了月份，则隐藏不匹配的月份
+      if (selectedMonth && monthText !== selectedMonth) {
+        monthNode.style.display = 'none';
+      } else {
+        // 确保月份节点展开，以便能看到任务
+        monthNode.style.display = '';
+        const monthCaret = monthNode.querySelector('.caret');
+        const nestedUl = monthNode.querySelector('.nested');
+        if (nestedUl && !nestedUl.classList.contains('active')) {
+          nestedUl.classList.add('active');
+          if (monthCaret) monthCaret.classList.add('caret-down');
+        }
+      }
+    });
+    
+    // 项目代号搜索也要继续应用
+    const searchText = document.getElementById('projectCodeSearch').value.toLowerCase();
+    if (searchText) {
+      document.querySelectorAll('.task-item').forEach(item => {
+        const projectCode = item.getAttribute('data-project-code').toLowerCase();
+        item.style.display = projectCode.includes(searchText) ? '' : 'none';
+      });
+    }
+  }
+
+  // 初始化年份筛选器
+  initYearFilter();
+  
+  // 监听项目代号搜索
+  document.getElementById('projectCodeSearch').addEventListener('input', function() {
+    filterTreeItems();
+  });
+  
+  // 页面加载后立即执行一次筛选，自动展开所有节点
+  filterTreeItems();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  // 处理树控件点击事件
+  document.querySelectorAll('.task-item').forEach(item => {
+    item.addEventListener('click', function() {
+      const taskNumber = this.textContent.split('(')[0].trim();
+      
+      // 发起AJAX请求获取任务详情
+      fetch(`/api/task-details/${taskNumber}/`)
+        .then(response => response.json())
+        .then(data => {
+          // 填充表单数据
+          document.getElementById('taskNumber').value = data.task_number;
+          document.getElementById('department').value = data.department;
+          document.getElementById('entrusted').value = data.entrusted_person;
+          document.getElementById('projectName').value = data.project_type;
+          document.getElementById('projectCode').value = data.project_code;
+          document.getElementById('sampleName').value = data.sample_name;
+          document.getElementById('sampleStage').value = data.sample_stage;
+          document.getElementById('sampleNumber').value = data.sample_quantity;
+          document.getElementById('sampleCode').value = data.sample_code;
+          document.getElementById('isSeparated').value = data.is_outsourced;
+          document.getElementById('isRequiredReport').value = data.requires_report;
+          document.getElementById('savePeriod').value = data.storage_period;
+          document.getElementById('storage').value = data.oil_storage;
+          document.getElementById('oilAmount').value = data.oil_amount;
+          document.getElementById('testContent').value = data.test_content;
+          document.getElementById('testContentExtra').value = data.test_contentExtra;
+          document.getElementById('testSpecs').value = data.test_specs;
+          document.getElementById('debug').value = data.debug_time;
+          document.getElementById('run').value = data.test_time;
+          document.getElementById('cost').value = data.estimated_cost;
+          document.getElementById('confirmation').value = data.task_source;
+          document.getElementById('testtype').value = data.business_type;
+          
+          // 处理复选框
+          const testBasis = data.test_basis.split(',');
+          document.querySelectorAll('input[name="testBasis"]').forEach(checkbox => {
+            checkbox.checked = testBasis.includes(checkbox.value);
+          });
+        })
+        .catch(error => console.error('Error:', error));
+    });
+  });
+});
+
+// 修改PDF导入处理函数
+document.addEventListener('DOMContentLoaded', function() {
+    const pdfInput = document.getElementById('pdfInput');
+    if (pdfInput) {
+        pdfInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                // 先清空表单所有内容
+                document.getElementById('taskForm').reset();
+                
+                const formData = new FormData();
+                formData.append('pdf', file);
+
+                // 修改为正确的URL路径
+                const response = await fetch('{% url "experiment:parse_task_pdf" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // 使用数据填充表单
+                    document.getElementById('taskNumber').value = data.taskNumber || '';
+                    document.getElementById('department').value = data.department || '';
+                    document.getElementById('entrusted').value = data.entrustedPerson || '';
+                    document.getElementById('projectCode').value = data.projectCode || '';
+                    document.getElementById('sampleStage').value = data.sampleStage || '';
+                    document.getElementById('sampleNumber').value = data.sampleNumber || '';
+                    document.getElementById('sampleCode').value = data.sampleCode || '';
+                    document.getElementById('isSeparated').value = data.isSeparated || '否';
+                    document.getElementById('isRequiredReport').value = data.isRequiredReport || '是';
+                    document.getElementById('savePeriod').value = data.savePeriod || '';
+                    document.getElementById('testContent').value = data.testContent || '';
+                    document.getElementById('testContentExtra').value = data.testContentExtra || '';
+                    document.getElementById('testSpecs').value = data.testSpecs || '';
+                    document.getElementById('debug').value = data.debug || '';
+                    document.getElementById('run').value = data.run || '';
+                    document.getElementById('cost').value = data.cost || '';
+                    document.getElementById('confirmation').value = data.confirmation || '';
+                    document.getElementById('testtype').value = data.testtype || '';
+                    
+                    alert('PDF导入成功！');
+                } else {
+                    alert('导入失败：' + data.message);
+                }
+            } catch (error) {
+                console.error('PDF导入错误:', error);
+                alert('PDF导入出错，请检查文件格式是否正确');
+            }
+
+            // 清空文件输入框，允许重复选择同一文件
+            e.target.value = '';
+        });
+    }
+});
+
+// 添加删除任务的事件监听器
+document.querySelector('.delete-btn').addEventListener('click', async function() {
+    const taskNumber = document.getElementById('taskNumber').value.trim();
+    
+    if (!taskNumber) {
+        alert('请先选择或输入要删除的任务单号');
+        return;
+    }
+
+    // 确认删除
+    if (!confirm(`确定要删除任务单 ${taskNumber} 吗？此操作无法撤销！`)) {
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('taskNumber', taskNumber);
+        formData.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+        const response = await fetch('{% url "experiment:delete_task_application" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            alert(data.message);
+            
+            // 清空表单
+            document.getElementById('taskForm').reset();
+            
+            // 刷新页面以更新任务列表
+            window.location.reload();
+        } else {
+            alert(data.message || '删除失败');
+        }
+    } catch (error) {
+        console.error('删除出错:', error);
+        alert('删除操作失败，请稍后重试');
+    }
+});
+
+// 添加更新任务的事件监听器
+document.querySelector('.update-btn').addEventListener('click', async function() {
+    const taskNumber = document.getElementById('taskNumber').value.trim();
+    
+    if (!taskNumber) {
+        alert('请先选择或输入要更新的任务单号');
+        return;
+    }
+
+    if (!validateForm()) {
+        return;
+    }
+
+    // 确认更新
+    if (!confirm(`确定要更新任务单 ${taskNumber} 吗？`)) {
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+        
+        // 获取所有表单字段并添加到 FormData
+        const fields = {
+            'taskNumber': taskNumber,
+            'department': document.getElementById('department').value,
+            'entrusted': document.getElementById('entrusted').value,
+            'projectName': document.getElementById('projectName').value,
+            'projectCode': document.getElementById('projectCode').value,
+            'sampleName': document.getElementById('sampleName').value,
+            'sampleStage': document.getElementById('sampleStage').value,
+            'sampleNumber': document.getElementById('sampleNumber').value,
+            'sampleCode': document.getElementById('sampleCode').value,
+            'isSeparated': document.getElementById('isSeparated').value,
+            'isRequiredReport': document.getElementById('isRequiredReport').value,
+            'savePeriod': document.getElementById('savePeriod').value,
+            'storage': document.getElementById('storage').value,
+            'oilAmount': document.getElementById('oilAmount').value,
+            'isJudgment': document.getElementById('isSeparated').value,
+            'testContent': document.getElementById('testContent').value,
+            'testContentExtra': document.getElementById('testContentExtra').value,
+            'testSpecs': document.getElementById('testSpecs').value,
+            'debug': document.getElementById('debug').value,
+            'run': document.getElementById('run').value,
+            'cost': document.getElementById('cost').value,
+            'confirmation': document.getElementById('confirmation').value,
+            'testtype': document.getElementById('testtype').value
+        };
+
+        // 添加所有字段到 FormData
+        for (const [key, value] of Object.entries(fields)) {
+            formData.append(key, value);
+        }
+
+        // 获取选中的试验依据
+        const testBasisChecked = [];
+        document.querySelectorAll('input[name="testBasis"]:checked').forEach(checkbox => {
+            testBasisChecked.push(checkbox.value);
+        });
+        formData.append('testBasis', testBasisChecked.join(','));
+
+        const response = await fetch('{% url "experiment:update_task_application" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            alert(data.message);
+            // 刷新页面以更新任务列表
+            window.location.reload();
+        } else {
+            alert(data.message || '更新失败');
+        }
+    } catch (error) {
+        console.error('更新出错:', error);
+        alert('更新操作失败，请稍后重试');
+    }
+});
+</script>
+
+<!-- 在页面头部添加 Font Awesome 图标库 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+{% endblock %}

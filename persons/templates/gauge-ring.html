@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+<head>
+  <meta charset="utf-8">
+</head>
+<body style="height: 100%; margin: 0">
+  <div id="gauge-container" style="height: 100%"></div>
+
+  <script type="text/javascript" src="https://registry.npmmirror.com/echarts/5.5.1/files/dist/echarts.min.js"></script>
+
+  <script type="text/javascript">
+    var dom = document.getElementById('gauge-container');
+    var myChart = echarts.init(dom, null, {
+      renderer: 'canvas',
+      useDirtyRect: false
+    });
+    var app = {};
+
+    var option;
+
+    const gaugeData = [
+      {
+        value: 0,  // 初始值
+        name: '综合值',
+        title: {
+          offsetCenter: ['0%', '-48%']
+        },
+        detail: {
+          valueAnimation: true,
+          offsetCenter: ['0%', '-30%']
+        }
+      },
+      {
+        value: 0,  // 初始值
+        name: '技能值',
+        title: {
+          offsetCenter: ['0%', '-10%']
+        },
+        detail: {
+          valueAnimation: true,
+          offsetCenter: ['0%', '10%']
+        }
+      },
+      {
+        value: 0,  // 初始值
+        name: '潜力值',
+        title: {
+          offsetCenter: ['0%', '30%']
+        },
+        detail: {
+          valueAnimation: true,
+          offsetCenter: ['0%', '48%']
+        }
+      }
+    ];
+    option = {
+      series: [
+        {
+          type: 'gauge',
+          startAngle: 90,
+          endAngle: -270,
+          pointer: {
+            show: false
+          },
+          progress: {
+            show: true,
+            overlap: false,
+            roundCap: true,
+            clip: false,
+            itemStyle: {
+              borderWidth: 1,
+              borderColor: '#464646'
+            }
+          },
+          axisLine: {
+            lineStyle: {
+              width: 40
+            }
+          },
+          splitLine: {
+            show: false,
+            distance: 0,
+            length: 10
+          },
+          axisTick: {
+            show: false
+          },
+          axisLabel: {
+            show: false,
+            distance: 50
+          },
+          data: gaugeData,
+          title: {
+            fontSize: 14
+          },
+          detail: {
+            width: 50,
+            height: 14,
+            fontSize: 14,
+            color: 'inherit',
+            borderColor: 'inherit',
+            borderRadius: 20,
+            borderWidth: 1,
+            formatter: '{value}'
+          }
+        }
+      ]
+    };
+
+    if (option && typeof option === 'object') {
+      myChart.setOption(option);
+    }
+
+    // 添加事件监听器，在窗口大小变化时调整图表大小
+    window.addEventListener('resize', function() {
+        myChart.resize();
+    });
+
+    // 确保在页面加载时调整图表大小
+    document.addEventListener('DOMContentLoaded', function() {
+        myChart.resize();
+    });
+
+    // 通过AJAX获取数据并更新图表
+    function updateGaugeData(professional_values_avg, test_ability_values_avg, compress_value) {
+      gaugeData[0].value = compress_value;
+      gaugeData[1].value = test_ability_values_avg;
+      gaugeData[2].value = professional_values_avg;  // 如果需要不同的数据，可以做相应调整
+
+      myChart.setOption({
+        series: [
+          {
+            data: gaugeData,
+            pointer: {
+              show: false
+            }
+          }
+        ]
+      });
+    }
+
+    // 示例AJAX请求获取数据
+    fetch('/get_person_skill_data/1/MT/')  // 替换为实际的API端点和参数
+        .then(response => response.json())
+        .then(data => {
+            var professionalValuesAvg = data.professional_values_avg;
+            var testAbilityValuesAvg = data.test_ability_values_avg;
+            var compress_value = data.compress_value;
+
+            // 调用函数更新仪表盘
+            updateGaugeData(professionalValuesAvg, testAbilityValuesAvg, compress_value);
+        })
+        .catch(error => console.error('Error fetching gauge data:', error));
+  </script>
+</body>
+</html>

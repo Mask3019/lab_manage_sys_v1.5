@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<main class="main">
+
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/ban4.png' %});">
+      <div class="container position-relative">
+        <h1>{{ page_title }}</h1>
+        <nav class="breadcrumbs">
+          <ol>
+            <li><a href="/">首页</a></li>
+            <li class="current"><a href={% url 'experiment:experiment_tasks_long' %}>试验管理  /  </a>{{ page_title }}</li>
+          </ol>
+        </nav>
+      </div>
+    </div><!-- End Page Title -->
+
+    <!-- Starter Section Section -->
+    <section id="starter-section" class="starter-section section">
+
+      <!-- 使用与头部一致的 container -->
+      <div class="container-fluid" data-aos="fade-up">
+        <!-- 使用 Bootstrap 卡片包裹 gantt.html 页面 -->
+        <div class="card">
+          <div class="card-body" style="height: 750px; overflow-y: auto;">
+            <iframe src="{% static 'jQueryGantt-master/gantt.html' %}" width="100%" height="100%" frameborder="0"></iframe>
+          </div>
+        </div>
+      </div>
+
+    </section><!-- /Starter Section Section -->
+
+  </main>
+
+{% endblock %}

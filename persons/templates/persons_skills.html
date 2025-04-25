@@ -1,0 +1,532 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<main class="main">
+    <!-- Page Title -->
+    <div class="page-title dark-background" style="background-image: url({% static 'images/offices_banner.png' %});">
+        <div class="container position-relative">
+            <h1>{{ page_title }}</h1>
+            <nav class="breadcrumbs">
+                <ol>
+                    <li><a href="/">首页</a></li>
+                    <li class="current"><a href="{% url 'persons:persons_skills' %}">人员管理  /  </a>{{ page_title }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div><!-- End Page Title -->
+
+    <!-- Personnel Skills Section -->
+    <section id="personnel-skills-section" class="personnel-skills-section section">
+        <div class="container" data-aos="fade-up">
+            <div class="row">
+                <!-- Left Column: Personnel Information -->
+                <div class="col-lg-2">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <!-- Search Box -->
+                            <div class="search-box mb-4 d-flex align-items-center">
+                                <label for="search-input" class="mr-2 mb-0">人员搜索：</label>
+                                <input type="text" class="form-control" id="search-input" placeholder="搜索..." onkeyup="filterNames()">
+                            </div>
+
+                            <!-- All Persons List -->
+                            <div class="all-persons-list text-left" style="max-height: 640px; overflow-y: auto;">
+                                <ul class="list-group" id="persons-list" onmouseover="preventPageScroll()" onmouseout="allowPageScroll()">
+                                    {% for person in persons|dictsort:"name" %}
+                                        <li class="list-group-item list-group-item-action" onclick="showPersonDetails('{{ person.id }}')">
+                                            {{ person.name }} - {{ person.years_in_service }}年 - {{ person.grade }}
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Person Details and Skills Charts -->
+                <div class="col-lg-10">
+                    <!-- Person Info -->
+                    <div id="person-details" class="person-details mb-4 text-left">
+                        <div class="row no-gutters">
+                            <div class="col-md-2 d-flex align-items-center">
+                                <img src="{% static 'images/default_photo.png' %}" alt="人员照片" id="person-photo" class="img-fluid person-photo mx-auto">
+                            </div>
+                            <div class="col-md-10">
+                                <div class="card h-100" id="info-card">
+                                    <div class="card-header">
+                                        <h5 class="card-title mb-0">人员信息</h5>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <table class="table table-bordered table-striped table-sm mb-0" id="person-info-table" style="table-layout: fixed;">
+                                            <colgroup>
+                                                <col style="width: 10%;">
+                                                <col style="width: 30%;">
+                                                <col style="width: 10%;">
+                                                <col style="width: 50%;">
+                                            </colgroup>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="fit-content">姓名：</td><td id="person-name"></td>
+                                                    <td class="fit-content">出生日期：</td><td id="person-birthdate"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="fit-content">等级：</td><td id="person-level"></td>
+                                                    <td class="fit-content">入职时间：</td><td id="person-hiredate"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="fit-content">联系方式：</td><td id="person-contact"></td>
+                                                    <td class="fit-content">家庭住址：</td><td id="person-address"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="fit-content">擅长领域：</td><td colspan="3" id="person-expertise"></td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="fit-content">职业素养：</td><td id="person-potential"></td>
+                                                    <td class="fit-content">试验技能：</td><td id="person-skill"></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 添加按钮组 -->
+                    <div class="row">
+                        <div class="button-group mt-0 mb-3 d-flex justify-content-between">
+                            <div class="left-buttons">
+                                <button onclick="selectButton(this); loadPerformanceData(currentPersonId, 'MT')" type="button" class="btn btn-custom mx-1">MT</button>
+                                <button onclick="selectButton(this); loadPerformanceData(currentPersonId, 'DCT')" type="button" class="btn btn-custom mx-1">DCT</button>
+                                <button onclick="selectButton(this); loadPerformanceData(currentPersonId, 'AT')" type="button" class="btn btn-custom mx-1">AT</button>
+                                <button onclick="selectButton(this); loadPerformanceData(currentPersonId, '电驱')" type="button" class="btn btn-custom mx-1">电驱</button>
+                                <button onclick="selectButton(this); loadPerformanceData(currentPersonId, '混动')" type="button" class="btn btn-custom mx-1">混动</button>
+                            </div>
+                            <div class="right-buttons">
+                                <button onclick="showSkillUpdateModal()" type="button" class="btn btn-warning mx-1">素质分更新</button>
+                                <button onclick="showPerformanceUpdateModal()" type="button" class="btn btn-info mx-1">技能分更新</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 说明标签 -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                1~20：没有基础；21~40：有点基础，但无法开展试验；41~60：可以开展部分试验；61~80：可以独立开展试验；81~100：可以独立开展试验且能分析相关问题
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skills Charts Section -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <!-- Radar Chart Card -->
+                            <div class="card mb-4">
+                                <div class="card-body p-0" style="height: 400px;">
+                                    <div class="skills-charts" style="height: 100%; width: 100%;">
+                                        {% include 'radar-custom.html' %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <!-- Gauge Chart Card -->
+                            <div class="card mb-4">
+                                <div class="card-body p-0" style="height: 400px;">
+                                    <div class="skills-gauge" style="height: 100%; width: 100%;">
+                                        {% include 'gauge-ring.html' %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section><!-- /Personnel Skills Section -->
+</main>
+
+<!-- 添加素质分更新模态框 -->
+<div class="modal fade" id="skillUpdateModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">更新素质分</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="skillUpdateForm">
+                    <div class="form-group">
+                        <label>响应及时:</label>
+                        <input type="number" class="form-control" name="skill1" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>归纳总结:</label>
+                        <input type="number" class="form-control" name="skill2" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>问题分析:</label>
+                        <input type="number" class="form-control" name="skill3" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>积极主动:</label>
+                        <input type="number" class="form-control" name="skill4" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>认真负责:</label>
+                        <input type="number" class="form-control" name="skill5" min="0" max="100" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <!-- <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button> -->
+                <button type="button" class="btn btn-primary" onclick="submitSkillUpdate()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加技能分更新模态框 -->
+<div class="modal fade" id="performanceUpdateModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">更新技能分</h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="performanceUpdateForm">
+                    <div class="form-group">
+                        <label>试验类型:</label>
+                        <select class="form-control" name="set_name" required>
+                            <option value="MT">MT</option>
+                            <option value="DCT">DCT</option>
+                            <option value="AT">AT</option>
+                            <option value="电驱">电驱</option>
+                            <option value="混动">混动</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>总成耐久:</label>
+                        <input type="number" class="form-control" name="performance1" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>总成润滑:</label>
+                        <input type="number" class="form-control" name="performance2" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>总成换档:</label>
+                        <input type="number" class="form-control" name="performance3" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>总成性能:</label>
+                        <input type="number" class="form-control" name="performance4" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>零部件:</label>
+                        <input type="number" class="form-control" name="performance5" min="0" max="100" required>
+                    </div>
+                    <div class="form-group">
+                        <label>静扭:</label>
+                        <input type="number" class="form-control" name="performance6" min="0" max="100" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <!-- <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button> -->
+                <button type="button" class="btn btn-primary" onclick="submitPerformanceUpdate()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var currentPersonId = null;  // 定义全局变量以存储当前选择的人员 ID
+
+function filterNames() {
+    var input, filter, ul, li, i, txtValue;
+    input = document.getElementById('search-input');
+    filter = input.value.toUpperCase();
+    ul = document.getElementById("persons-list");
+    li = ul.getElementsByTagName('li');
+    for (i = 0; i < li.length; i++) {
+        txtValue = li[i].textContent || li[i].innerText;
+        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+            li[i].style.display = "";
+        } else {
+            li[i].style.display = "none";
+        }
+    }
+}
+
+function showPersonDetails(personId) {
+    currentPersonId = personId;  // 将 personId 保存到全局变量中
+
+    // 使用AJAX从数据库获取人员详细信息
+    fetch(`/get_person_details/${personId}/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('person-photo').src = data.photo;
+            document.getElementById('person-name').textContent = data.name;
+            document.getElementById('person-birthdate').textContent = data.birthdate;
+            document.getElementById('person-level').textContent = data.level;
+            document.getElementById('person-hiredate').textContent = data.hiredate;
+            document.getElementById('person-contact').textContent = data.contact;
+            document.getElementById('person-address').textContent = data.address;
+            document.getElementById('person-expertise').textContent = data.expertise;
+            {#document.getElementById('person-potential').textContent = data.potential;#}
+            {#document.getElementById('person-skill').textContent = data.skill;#}
+
+            document.getElementById('person-details').style.display = 'block';
+
+            // 调整图片高度
+            adjustImageHeight();
+
+            loadPerformanceData(personId, 'MT');  // 默认加载 'MT' 数据集
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function adjustImageHeight() {
+    var img = document.getElementById('person-photo');
+    if (img.complete) {
+        setCardBodyHeight(img);
+    } else {
+        img.onload = function() {
+            setCardBodyHeight(img);
+        };
+    }
+}
+
+function setCardBodyHeight(img) {
+    var cardBody = img.closest('.card-body');
+    if (cardBody) {
+        var cardBodyHeight = cardBody.clientHeight;
+        img.style.height = cardBodyHeight + 'px';
+        img.style.width = 'auto';
+    }
+}
+
+function preventPageScroll() {
+    document.body.style.overflow = 'hidden';
+}
+
+function allowPageScroll() {
+    document.body.style.overflow = 'auto';
+}
+
+function loadPerformanceData(personId, setName) {
+    fetch(`/get_person_skill_data/${personId}/${setName}/`)
+        .then(response => response.json())
+        .then(data => {
+            console.log("Updating radar chart with values:", data.professional_values, data.test_ability_values);
+            updateRadarChart(data.professional_content, data.professional_values, data.professional_values_max, data.test_ability_values, data.test_ability_values_max);  // 调用函数更新雷达图
+            document.getElementById('person-potential').textContent = data.professional_values_avg;
+            document.getElementById('person-skill').textContent = data.test_ability_values_avg;
+            updateGaugeData(data.professional_values_avg, data.test_ability_values_avg, data.compress_value)
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function selectButton(button) {
+    // 取消所有按钮的选中状态
+    var buttons = document.querySelectorAll('.btn-custom');
+    buttons.forEach(function(btn) {
+        btn.classList.remove('active');  // 移除所有按钮的active类
+    });
+
+    // 设置当前点击按钮为选中状态
+    button.classList.add('active');  // 为点击的按钮添加active类
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 调整图片高度
+    adjustImageHeight();
+    {#loadPerformanceData(4, 'MT');  // 根据实际情况加载默认数据#}
+});
+
+function showSkillUpdateModal() {
+    if (!currentPersonId) {
+        alert('请先选择一个人员');
+        return;
+    }
+    $('#skillUpdateModal').modal('show');
+}
+
+function showPerformanceUpdateModal() {
+    if (!currentPersonId) {
+        alert('请先选择一个人员');
+        return;
+    }
+    $('#performanceUpdateModal').modal('show');
+}
+
+function submitSkillUpdate() {
+    if (!currentPersonId) {
+        alert('请先选择一个人员');
+        return;
+    }
+
+    const formData = new FormData(document.getElementById('skillUpdateForm'));
+    const data = {
+        person_id: currentPersonId,
+        skill_data: Object.fromEntries(formData)
+    };
+
+    fetch('/update_skill/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('素质分更新成功！');
+            $('#skillUpdateModal').modal('hide');
+            loadPerformanceData(currentPersonId, 'MT');  // 刷新数据显示
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('更新失败，请检查网络连接');
+    });
+}
+
+function submitPerformanceUpdate() {
+    if (!currentPersonId) {
+        alert('请先选择一个人员');
+        return;
+    }
+
+    const formData = new FormData(document.getElementById('performanceUpdateForm'));
+    const data = {
+        person_id: currentPersonId,
+        performance_data: Object.fromEntries(formData)
+    };
+
+    fetch('/update_performance/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert('技能分更新成功！');
+            $('#performanceUpdateModal').modal('hide');
+            loadPerformanceData(currentPersonId, data.performance_data.set_name);  // 刷新数据显示
+        } else {
+            alert('更新失败：' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('更新失败，请检查网络连接');
+    });
+}
+</script>
+
+<style>
+.text-left {
+    text-align: left;
+}
+.table-bordered {
+    width: 100%;
+}
+.container {
+    max-width: 90%;
+}
+.img-fluid {
+    max-width: 100%;
+    height: auto;
+}
+.table tbody tr td, .table tbody tr th {
+    vertical-align: middle;
+    padding: 0.3rem; /* 减少单元格内填充 */
+}
+.search-box label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+.card {
+    margin-bottom: 0;
+}
+.card-body {
+    padding: 0.5rem;
+}
+.table th.fit-content, .table td.fit-content {
+    white-space: nowrap;
+}
+.person-photo {
+    width: 190px; /* 固定宽度 */
+    height: 240px; /* 固定高度 */
+    object-fit: cover; /* 保持比例裁剪图片以填充容器 */
+    {#border-radius: 50%; /* 如果需要圆形图片，可以加上这个属性 */#}
+}
+.list-group-item-action:hover {
+    background-color: #d0e7ff;
+}
+.button-group {
+    width: 100%;
+}
+
+.left-buttons, .right-buttons {
+    display: inline-block;
+}
+
+.right-buttons {
+    float: right;
+}
+
+.btn-custom {
+    font-size: 14px;
+    width: 100px;
+    padding: 7px 15px; /* 高度减小1/3 */
+    background-color: white; /* 默认白底 */
+    color: black; /* 默认黑字 */
+    border: 1px solid black;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.btn-custom:hover, .btn-custom.active {
+    background-color: #0056b3; /* hover或点击后背景颜色 */
+    color: white; /* hover或点击后文字颜色 */
+}
+
+.alert-info {
+    margin-top: 3px;
+    padding: 3px;
+    background-color: #e9f7ff;
+    color: #0056b3;
+    border: 1px solid #0056b3;
+}
+
+.btn-warning, .btn-info {
+    font-size: 14px;
+    width: 120px;
+    padding: 7px 15px;
+}
+
+.modal-dialog {
+    max-width: 500px;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-control {
+    width: 100%;
+}
+</style>
+
+{% endblock %}

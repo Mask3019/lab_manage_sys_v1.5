@@ -1,0 +1,29 @@
+{
+    "mcpServers":{
+        "neon":{
+            "command":"npx",
+            "args":[
+                "-y", 
+                "@neondatabase/mcp-server-neon", 
+                "start", 
+                "napi_006oj6kpcdqf1ryuuxsbc1jubx8nc73kp3lng4zmvssrmoi41nc1zvj546h2eu36"
+            ]
+        },
+        "magic-mcp": {
+        "command": "npx",
+        "args": [
+            "-y",
+            "@smithery/cli@latest",
+            "run",
+            "@21st-dev/magic-mcp",
+            "--key",
+            "b7211d34-9529-477f-b6e5-a777c655b231"
+        ]
+        },
+        "BrowserTools":{
+            "command":"npx",
+            "args":[
+                "@agentdeskai/browser-tools-mcp@1.2.0"
+            ]
+    }
+}
