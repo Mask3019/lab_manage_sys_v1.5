@@ -138,3 +138,5 @@
 如此细化的 `README.md` 应能满足实际工程应用中对文档详细程度的要求，如果还有更多特定的需求，请随时告诉我。
 
 <!-- npx @agentdeskai/browser-tools-server@latest -->
+
+<!-- GitHUB token：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 -->
